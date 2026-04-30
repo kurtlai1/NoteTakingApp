@@ -5,10 +5,25 @@ const TABLE_NAME = 'notes';
 
 SQLite.enablePromise(true);
 
-let dbPromise;
+let dbPromise: Promise<any>;
 let initialized = false;
 
-function getDb() {
+export type NoteInput = {
+  title: string;
+  body: string;
+  tags?: string[] | string;
+};
+
+export type NoteRecord = {
+  id: number;
+  title: string;
+  body: string;
+  tags: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function getDb(): Promise<any> {
   if (!dbPromise) {
     dbPromise = SQLite.openDatabase({
       name: DB_NAME,
@@ -19,19 +34,19 @@ function getDb() {
   return dbPromise;
 }
 
-function wrapDbError(operation, error) {
+function wrapDbError(operation: string, error: unknown): Error {
   const message = error instanceof Error ? error.message : String(error);
   return new Error(`Failed to ${operation}: ${message}`);
 }
 
-async function executeSql(sql, params = []) {
+async function executeSql(sql: string, params: unknown[] = []): Promise<any> {
   const db = await getDb();
   const [result] = await db.executeSql(sql, params);
   return result;
 }
 
-function rowsToArray(result) {
-  const rows = [];
+function rowsToArray(result: any): NoteRecord[] {
+  const rows: NoteRecord[] = [];
   for (let i = 0; i < result.rows.length; i += 1) {
     rows.push(result.rows.item(i));
   }
@@ -39,17 +54,17 @@ function rowsToArray(result) {
   return rows;
 }
 
-async function ensureInitialized() {
+async function ensureInitialized(): Promise<void> {
   if (!initialized) {
     await initializeDatabase();
   }
 }
 
-function nowIso() {
+function nowIso(): string {
   return new Date().toISOString();
 }
 
-function normalizeTags(tags) {
+function normalizeTags(tags: unknown): string {
   if (Array.isArray(tags)) {
     return tags
       .map(tag => String(tag).trim())
@@ -68,14 +83,18 @@ function normalizeTags(tags) {
   return '';
 }
 
-function validateWriteInput(input) {
+function validateWriteInput(input: unknown): {
+  title: string;
+  body: string;
+  tags: string;
+} {
   if (!input || typeof input !== 'object') {
     throw new Error('Invalid input: note payload is required.');
   }
 
-  const title = String(input.title ?? '').trim();
-  const body = String(input.body ?? '').trim();
-  const tags = normalizeTags(input.tags);
+  const title = String((input as any).title ?? '').trim();
+  const body = String((input as any).body ?? '').trim();
+  const tags = normalizeTags((input as any).tags);
 
   if (!title) {
     throw new Error('Validation failed: title is required.');
@@ -92,7 +111,7 @@ function validateWriteInput(input) {
   return { title, body, tags };
 }
 
-function validateId(id) {
+function validateId(id: unknown): number {
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) {
     throw new Error('Validation failed: id must be a positive integer.');
@@ -101,7 +120,7 @@ function validateId(id) {
   return numericId;
 }
 
-export async function initializeDatabase() {
+export async function initializeDatabase(): Promise<void> {
   try {
     await executeSql(
       `
@@ -121,7 +140,7 @@ export async function initializeDatabase() {
   }
 }
 
-export async function createNote(input) {
+export async function createNote(input: NoteInput): Promise<NoteRecord> {
   try {
     await ensureInitialized();
     const { title, body, tags } = validateWriteInput(input);
@@ -148,7 +167,7 @@ export async function createNote(input) {
   }
 }
 
-export async function getAllNotes() {
+export async function getAllNotes(): Promise<NoteRecord[]> {
   try {
     await ensureInitialized();
     const result = await executeSql(
@@ -165,7 +184,7 @@ export async function getAllNotes() {
   }
 }
 
-export async function getNoteById(id) {
+export async function getNoteById(id: number): Promise<NoteRecord | null> {
   try {
     await ensureInitialized();
     const noteId = validateId(id);
@@ -185,7 +204,10 @@ export async function getNoteById(id) {
   }
 }
 
-export async function updateNote(id, input) {
+export async function updateNote(
+  id: number,
+  input: NoteInput,
+): Promise<NoteRecord | null> {
   try {
     await ensureInitialized();
     const noteId = validateId(id);
@@ -211,14 +233,13 @@ export async function updateNote(id, input) {
   }
 }
 
-export async function deleteNote(id) {
+export async function deleteNote(id: number): Promise<boolean> {
   try {
     await ensureInitialized();
     const noteId = validateId(id);
-    const result = await executeSql(
-      `DELETE FROM ${TABLE_NAME} WHERE id = ?`,
-      [noteId],
-    );
+    const result = await executeSql(`DELETE FROM ${TABLE_NAME} WHERE id = ?`, [
+      noteId,
+    ]);
 
     return (result.rowsAffected ?? 0) > 0;
   } catch (error) {

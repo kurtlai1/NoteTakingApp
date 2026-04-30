@@ -1,7 +1,10 @@
 export {
-	CREATE_NOTES_TABLE_SQL,
-	CREATE_UPDATED_AT_INDEX_SQL,
-	DROP_NOTES_TABLE_SQL,
-} from './schema';
-
-export { runMigrations } from './migrations';
+  initializeDatabase,
+  createNote,
+  getAllNotes,
+  getNoteById,
+  updateNote,
+  deleteNote,
+  type NoteInput,
+  type NoteRecord,
+} from './database';

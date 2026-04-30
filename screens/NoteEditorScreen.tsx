@@ -17,12 +17,6 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
 import { createNote, getNoteById, updateNote } from '../database/database';
 import { suggestTagsFromBody } from '../services/tagService';
-import {
-  connectSync,
-  disconnectSync,
-  publishNote,
-  subscribeToNotes,
-} from '../services/syncService';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NoteEditor'>;
 
@@ -57,11 +51,6 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [incomingNotePreview, setIncomingNotePreview] = useState<{
-    title: string;
-    bodyPreview: string;
-  } | null>(null);
   const [isSaveConfirmVisible, setIsSaveConfirmVisible] = useState(false);
 
   const noteId = route.params?.noteId;
@@ -91,25 +80,6 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
       loadNote();
     }, [noteId]),
   );
-
-  useEffect(() => {
-    const unsubscribe = subscribeToNotes(note => {
-      const syncedTitle = String(note.title ?? 'Untitled note').trim() || 'Untitled note';
-      const syncedBody = String(note.body ?? '').trim();
-
-      setIncomingNotePreview({
-        title: syncedTitle,
-        bodyPreview: syncedBody.slice(0, 50),
-      });
-
-      showToast('Sync update received');
-    });
-
-    return () => {
-      unsubscribe();
-      disconnectSync();
-    };
-  }, []);
 
   const showToast = (message: string) => {
     if (Platform.OS === 'android') {
@@ -157,29 +127,11 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
       setSuggestedTags(suggestions);
       showToast(suggestions.length > 0 ? 'Tags suggested' : 'No tags found');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Tag suggestion failed';
+      const message =
+        error instanceof Error ? error.message : 'Tag suggestion failed';
       showToast(message);
     } finally {
       setIsSuggesting(false);
-    }
-  };
-
-  const handleSyncNote = async () => {
-    setIsSyncing(true);
-
-    try {
-      await publishNote({
-        body: body.trim(),
-        tags: selectedTags,
-        title: title.trim(),
-        updated_at: new Date().toISOString(),
-      });
-      showToast('Note synced successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sync failed';
-      showToast(message);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -213,7 +165,8 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
       const savedId = Number((saved as { id: number }).id);
       navigation.replace('NoteDetail', { noteId: savedId });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save note';
+      const message =
+        error instanceof Error ? error.message : 'Failed to save note';
       setIsSaveConfirmVisible(false);
       showToast(message);
     }
@@ -223,19 +176,6 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
     <ScreenContainer scrollable>
       <Text style={styles.title}>Note Editor</Text>
       <Text style={styles.subtitle}>Create or update your note details.</Text>
-
-      {incomingNotePreview ? (
-        <View style={styles.syncBanner}>
-          <Text style={styles.syncBannerTitle}>Incoming Sync: {incomingNotePreview.title}</Text>
-          <Text style={styles.syncBannerBody}>{incomingNotePreview.bodyPreview}</Text>
-          <Pressable
-            style={styles.syncBannerDismiss}
-            onPress={() => setIncomingNotePreview(null)}
-          >
-            <Text style={styles.syncBannerDismissText}>Dismiss</Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       <View style={styles.formCard}>
         <Text style={styles.label}>Title</Text>
@@ -258,7 +198,11 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
 
         <View style={styles.inlineRow}>
           <Pressable
-            style={[styles.actionButton, styles.suggestButton, isSuggesting && styles.disabledButton]}
+            style={[
+              styles.actionButton,
+              styles.suggestButton,
+              isSuggesting && styles.disabledButton,
+            ]}
             disabled={isSuggesting}
             onPress={handleSuggestTags}
           >
@@ -267,13 +211,19 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
             </Text>
           </Pressable>
 
-          {isSuggesting ? <ActivityIndicator color="#1d4ed8" size="small" /> : null}
+          {isSuggesting ? (
+            <ActivityIndicator color="#1d4ed8" size="small" />
+          ) : null}
         </View>
 
         {suggestedTags.length > 0 ? (
           <View style={styles.chipsWrap}>
             {suggestedTags.map(tag => (
-              <Pressable key={tag} style={styles.suggestedChip} onPress={() => addTag(tag)}>
+              <Pressable
+                key={tag}
+                style={styles.suggestedChip}
+                onPress={() => addTag(tag)}
+              >
                 <Text style={styles.suggestedChipText}>+ {tag}</Text>
               </Pressable>
             ))}
@@ -288,15 +238,24 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
             value={manualTagInput}
             onChangeText={setManualTagInput}
           />
-          <Pressable style={[styles.actionButton, styles.addTagButton]} onPress={handleAddManualTag}>
-            <Text style={[styles.actionButtonText, styles.addTagText]}>Add</Text>
+          <Pressable
+            style={[styles.actionButton, styles.addTagButton]}
+            onPress={handleAddManualTag}
+          >
+            <Text style={[styles.actionButtonText, styles.addTagText]}>
+              Add
+            </Text>
           </Pressable>
         </View>
 
         {selectedTags.length > 0 ? (
           <View style={styles.chipsWrap}>
             {selectedTags.map(tag => (
-              <Pressable key={tag} style={styles.selectedChip} onPress={() => removeTag(tag)}>
+              <Pressable
+                key={tag}
+                style={styles.selectedChip}
+                onPress={() => removeTag(tag)}
+              >
                 <Text style={styles.selectedChipText}>{tag} x</Text>
               </Pressable>
             ))}
@@ -305,21 +264,17 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
 
         <View style={styles.footerActions}>
           <Pressable
-            style={[styles.actionButton, styles.syncButton, isSyncing && styles.disabledButton]}
-            disabled={isSyncing}
-            onPress={handleSyncNote}
-          >
-            <Text style={[styles.actionButtonText, styles.syncButtonText]}>
-              {isSyncing ? 'Syncing...' : 'Sync Note'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[styles.actionButton, styles.saveButton, !canSave && styles.disabledButton]}
+            style={[
+              styles.actionButton,
+              styles.saveButton,
+              !canSave && styles.disabledButton,
+            ]}
             disabled={!canSave}
             onPress={handleSave}
           >
-            <Text style={[styles.actionButtonText, styles.saveButtonText]}>Save</Text>
+            <Text style={[styles.actionButtonText, styles.saveButtonText]}>
+              Save
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -408,33 +363,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#ffffff',
   },
-  syncBanner: {
-    backgroundColor: '#ecfeff',
-    borderColor: '#99f6e4',
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 12,
-  },
-  syncBannerBody: {
-    color: '#155e75',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  syncBannerDismiss: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  syncBannerDismissText: {
-    color: '#0f766e',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  syncBannerTitle: {
-    color: '#0e7490',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   selectedChip: {
     backgroundColor: '#dbeafe',
     borderRadius: 999,
@@ -471,13 +399,6 @@ const styles = StyleSheet.create({
     color: '#0e7490',
     fontSize: 13,
     fontWeight: '600',
-  },
-  syncButton: {
-    backgroundColor: '#0f766e',
-    marginLeft: 10,
-  },
-  syncButtonText: {
-    color: '#ffffff',
   },
   title: {
     color: '#0f172a',
