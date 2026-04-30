@@ -11,6 +11,8 @@ type NoteRow = {
   title: string;
   body: string;
   tags: string;
+  is_favorite: number;
+  deleted_at: string | null;
   updated_at: string;
 };
 
@@ -21,10 +23,10 @@ function parseTags(tags: string): string[] {
     .filter(Boolean);
 }
 
-export default function TagsScreen() {
+export default function FoldersScreen() {
   const navigation = useNavigation<any>();
   const [notes, setNotes] = useState<NoteRow[]>([]);
-  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState('');
 
   const loadNotes = useCallback(async () => {
     try {
@@ -41,36 +43,36 @@ export default function TagsScreen() {
     }, [loadNotes]),
   );
 
-  const tags = useMemo(() => {
+  const folders = useMemo(() => {
     const allTags = notes.flatMap(note => parseTags(note.tags));
     return Array.from(new Set(allTags)).sort((left, right) => left.localeCompare(right));
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
-    if (!selectedTag) {
+    if (!selectedFolder) {
       return notes;
     }
 
-    return notes.filter(note => parseTags(note.tags).includes(selectedTag));
-  }, [notes, selectedTag]);
+    return notes.filter(note => parseTags(note.tags).includes(selectedFolder));
+  }, [notes, selectedFolder]);
 
   return (
     <ScreenContainer>
       <View style={styles.headerRow}>
-        <MaterialCommunityIcons name="tag-multiple-outline" size={26} color="#0f766e" />
-        <Text style={styles.title}>Tags</Text>
-      </View>
-      <Text style={styles.subtitle}>Browse notes by tag categories.</Text>
+<MaterialCommunityIcons name="folder-multiple-outline" size={26} color="#0f766e" />
+      <Text style={styles.title}>Folders</Text>
+    </View>
+    <Text style={styles.subtitle}>Browse notes by folder categories.</Text>
 
-      <View style={styles.tagsWrap}>
-        {tags.map(tag => (
+      <View style={styles.foldersWrap}>
+        {folders.map(folder => (
           <Pressable
-            key={tag}
-            style={[styles.tagChip, selectedTag === tag && styles.tagChipSelected]}
-            onPress={() => setSelectedTag(prev => (prev === tag ? '' : tag))}
+            key={folder}
+            style={[styles.folderChip, selectedFolder === folder && styles.folderChipSelected]}
+            onPress={() => setSelectedFolder(prev => (prev === folder ? '' : folder))}
           >
-            <Text style={[styles.tagText, selectedTag === tag && styles.tagTextSelected]}>
-              #{tag}
+            <Text style={[styles.folderText, selectedFolder === folder && styles.folderTextSelected]}>
+              {folder}
             </Text>
           </Pressable>
         ))}
@@ -82,8 +84,8 @@ export default function TagsScreen() {
         keyExtractor={item => String(item.id)}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="tag-outline" size={32} color="#94a3b8" />
-            <Text style={styles.emptyText}>No notes found for this tag.</Text>
+            <MaterialCommunityIcons name="folder-outline" size={32} color="#94a3b8" />
+            <Text style={styles.emptyText}>No notes found for this folder.</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -93,6 +95,7 @@ export default function TagsScreen() {
             body={item.body}
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
+            isFavorite={item.is_favorite === 1}
             onPress={() => navigation.navigate('Home', { screen: 'NoteDetail', params: { noteId: item.id } })}
           />
         )}
@@ -123,7 +126,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  tagChip: {
+  folderChip: {
     backgroundColor: '#eef6ff',
     borderRadius: 999,
     marginRight: 8,
@@ -131,20 +134,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  tagChipSelected: {
+  folderChipSelected: {
     backgroundColor: '#1d4ed8',
   },
-  tagsWrap: {
+  foldersWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
   },
-  tagText: {
+  folderText: {
     color: '#1d4ed8',
     fontSize: 13,
     fontWeight: '600',
   },
-  tagTextSelected: {
+  folderTextSelected: {
     color: '#ffffff',
   },
   title: {

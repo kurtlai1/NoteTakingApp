@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ScreenContainer from '../components/ScreenContainer';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
-import { deleteNote, getNoteById } from '../database/database';
+import { deleteNote, getNoteById, setNoteFavorite } from '../database/database';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NoteDetail'>;
 
@@ -14,6 +14,8 @@ type NoteRecord = {
   title: string;
   body: string;
   tags: string;
+	is_favorite: number;
+	deleted_at: string | null;
   updated_at: string;
 };
 
@@ -74,6 +76,15 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 		navigation.navigate('HomeMain');
 	};
 
+	const handleToggleFavorite = async () => {
+		if (!noteId || !note) {
+			return;
+		}
+
+		const updated = await setNoteFavorite(noteId, note.is_favorite !== 1);
+		setNote((updated as NoteRecord | null) ?? note);
+	};
+
 	const handleOpenEditor = () => {
 		navigation.replace('NoteEditor', noteId ? { noteId } : {});
 	};
@@ -92,13 +103,16 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 			</View>
 
 			{tags.length > 0 ? (
-				<View style={styles.tagsRow}>
-					{tags.map(tag => (
-						<View key={tag} style={styles.tagChip}>
-							<Text style={styles.tagText}>#{tag}</Text>
-						</View>
-					))}
-				</View>
+				<>
+					<Text style={styles.subheading}>Folders</Text>
+					<View style={styles.tagsRow}>
+						{tags.map(tag => (
+							<View key={tag} style={styles.tagChip}>
+								<Text style={styles.tagText}>#{tag}</Text>
+							</View>
+						))}
+					</View>
+				</>
 			) : null}
 
 			<Text style={styles.bodyText}>
@@ -106,6 +120,17 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 			</Text>
 
 			<View style={styles.actions}>
+				{note ? (
+					<Pressable
+						style={[styles.button, styles.favoriteButton]}
+						onPress={handleToggleFavorite}
+					>
+						<Text style={[styles.buttonText, styles.favoriteText]}>
+							{note.is_favorite === 1 ? 'Unfavorite' : 'Favorite'}
+						</Text>
+					</Pressable>
+				) : null}
+
 				<Pressable style={[styles.button, styles.editButton]} onPress={handleOpenEditor}>
 					<Text style={[styles.buttonText, styles.editText]}>
 						{note ? 'Edit' : 'Create'}
@@ -124,9 +149,9 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 
 			<ConfirmDialog
 				visible={isDeleteDialogVisible}
-				title="Delete Note"
-				message="This action cannot be undone. Are you sure you want to delete this note?"
-				confirmText="Delete"
+				title="Move To Recycle Bin"
+				message="This note will move to Recycle Bin. Permanently delete it from Recycle Bin when needed."
+				confirmText="Move"
 				onConfirm={handleDelete}
 				onCancel={() => setIsDeleteDialogVisible(false)}
 			/>
@@ -170,6 +195,12 @@ const styles = StyleSheet.create({
 	editText: {
 		color: '#1d4ed8',
 	},
+	favoriteButton: {
+		backgroundColor: '#fef3c7',
+	},
+	favoriteText: {
+		color: '#b45309',
+	},
 	headerRow: {
 		alignItems: 'flex-start',
 	},
@@ -199,5 +230,12 @@ const styles = StyleSheet.create({
 	updatedAt: {
 		color: '#64748b',
 		marginTop: 6,
+	},
+	subheading: {
+		color: '#475569',
+		fontSize: 13,
+		fontWeight: '700',
+		marginTop: 16,
+		marginBottom: 8,
 	},
 });
