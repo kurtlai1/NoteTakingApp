@@ -1,9 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Button } from 'react-native';
-import HomeScreen from '../screens/HomeScreen';
-import NoteDetailScreen from '../screens/NoteDetailScreen';
-import NoteEditorScreen from '../screens/NoteEditorScreen';
+import { HomeScreen, NoteDetailScreen, NoteEditorScreen } from '../screens';
 
 export type HomeStackParamList = {
   HomeMain: undefined;

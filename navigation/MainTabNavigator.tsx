@@ -50,40 +50,41 @@ export default function MainTabNavigator() {
             flex: 1,
             justifyContent: 'center',
           },
-          tabBarButton: props => (
-            <Pressable
-              {...props}
-              style={({ pressed }) => [
-                {
-                  alignItems: 'center',
-                  backgroundColor: '#1e88e5',
-                  borderRadius: 999,
-                  height: 68,
-                  justifyContent: 'center',
-                  marginTop: -26,
-                  width: 68,
-                },
-                pressed && { opacity: 0.92 },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="note-edit-outline"
-                color="#ffffff"
-                size={34}
-              />
-            </Pressable>
-          ),
+          tabBarButton: props => {
+            const { onPress, onLongPress } = props;
+            return (
+              <Pressable
+                onPress={onPress}
+                onLongPress={onLongPress}
+                style={({ pressed }) => [
+                  {
+                    alignItems: 'center',
+                    backgroundColor: '#1e88e5',
+                    borderRadius: 999,
+                    height: 68,
+                    justifyContent: 'center',
+                    marginTop: -26,
+                    width: 68,
+                  },
+                  pressed && { opacity: 0.92 },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="note-edit-outline"
+                  color="#ffffff"
+                  size={34}
+                />
+              </Pressable>
+            );
+          },
           tabBarLabelStyle: { fontSize: 1 },
         }}
         listeners={({ navigation }) => ({
           tabPress: event => {
             event.preventDefault();
-            navigation.navigate(
-              'Home' as never,
-              {
-                screen: 'NoteEditor',
-              } as never,
-            );
+            (navigation as any).navigate('Home', {
+              screen: 'NoteEditor',
+            });
           },
         })}
       />

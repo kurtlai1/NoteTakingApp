@@ -21,6 +21,8 @@ export type NoteRecord = {
   tags: string;
   created_at: string;
   updated_at: string;
+  is_favorite: number;
+  deleted_at: string | null;
 };
 
 function getDb(): Promise<any> {
@@ -134,6 +136,19 @@ export async function initializeDatabase(): Promise<void> {
       );
     `,
     );
+    // Add migration for new columns
+    try {
+      await executeSql(`ALTER TABLE ${TABLE_NAME} ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;`);
+    } catch {
+      // Column already exists
+    }
+
+    try {
+      await executeSql(`ALTER TABLE ${TABLE_NAME} ADD COLUMN deleted_at TEXT;`);
+    } catch {
+      // Column already exists
+    }
+
     initialized = true;
   } catch (error) {
     throw wrapDbError('initialize database', error);
@@ -148,10 +163,10 @@ export async function createNote(input: NoteInput): Promise<NoteRecord> {
 
     const result = await executeSql(
       `
-      INSERT INTO ${TABLE_NAME} (title, body, tags, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO ${TABLE_NAME} (title, body, tags, created_at, updated_at, is_favorite, deleted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
-      [title, body, tags, timestamp, timestamp],
+      [title, body, tags, timestamp, timestamp, 0, null],
     );
 
     return {
@@ -161,6 +176,8 @@ export async function createNote(input: NoteInput): Promise<NoteRecord> {
       tags,
       created_at: timestamp,
       updated_at: timestamp,
+      is_favorite: 0,
+      deleted_at: null,
     };
   } catch (error) {
     throw wrapDbError('create note', error);
@@ -172,8 +189,9 @@ export async function getAllNotes(): Promise<NoteRecord[]> {
     await ensureInitialized();
     const result = await executeSql(
       `
-      SELECT id, title, body, tags, created_at, updated_at
+      SELECT id, title, body, tags, created_at, updated_at, is_favorite, deleted_at
       FROM ${TABLE_NAME}
+      WHERE deleted_at IS NULL
       ORDER BY updated_at DESC
     `,
     );
@@ -190,7 +208,7 @@ export async function getNoteById(id: number): Promise<NoteRecord | null> {
     const noteId = validateId(id);
     const result = await executeSql(
       `
-      SELECT id, title, body, tags, created_at, updated_at
+      SELECT id, title, body, tags, created_at, updated_at, is_favorite, deleted_at
       FROM ${TABLE_NAME}
       WHERE id = ?
       LIMIT 1
@@ -237,12 +255,149 @@ export async function deleteNote(id: number): Promise<boolean> {
   try {
     await ensureInitialized();
     const noteId = validateId(id);
+    const result = await executeSql(
+      `UPDATE ${TABLE_NAME} SET deleted_at = ? WHERE id = ?`,
+      [nowIso(), noteId],
+    );
+
+    return (result.rowsAffected ?? 0) > 0;
+  } catch (error) {
+    throw wrapDbError('delete note', error);
+  }
+}
+
+export async function getDeletedNotes(): Promise<NoteRecord[]> {
+  try {
+    await ensureInitialized();
+    const result = await executeSql(
+      `
+      SELECT id, title, body, tags, created_at, updated_at, is_favorite, deleted_at
+      FROM ${TABLE_NAME}
+      WHERE deleted_at IS NOT NULL
+      ORDER BY updated_at DESC
+      `,
+    );
+
+    return rowsToArray(result);
+  } catch (error) {
+    throw wrapDbError('fetch deleted notes', error);
+  }
+}
+
+export async function permanentlyDeleteNote(id: number): Promise<boolean> {
+  try {
+    await ensureInitialized();
+    const noteId = validateId(id);
     const result = await executeSql(`DELETE FROM ${TABLE_NAME} WHERE id = ?`, [
       noteId,
     ]);
 
     return (result.rowsAffected ?? 0) > 0;
   } catch (error) {
-    throw wrapDbError('delete note', error);
+    throw wrapDbError('permanently delete note', error);
+  }
+}
+
+export async function restoreNote(id: number): Promise<NoteRecord | null> {
+  try {
+    await ensureInitialized();
+    const noteId = validateId(id);
+    const result = await executeSql(
+      `UPDATE ${TABLE_NAME} SET deleted_at = NULL WHERE id = ?`,
+      [noteId],
+    );
+
+    if ((result.rowsAffected ?? 0) === 0) {
+      throw new Error(`Note with id ${noteId} does not exist.`);
+    }
+
+    return getNoteById(noteId);
+  } catch (error) {
+    throw wrapDbError('restore note', error);
+  }
+}
+
+export async function setNoteFavorite(
+  id: number,
+  isFavorite: boolean,
+): Promise<NoteRecord | null> {
+  try {
+    await ensureInitialized();
+    const noteId = validateId(id);
+    const result = await executeSql(
+      `UPDATE ${TABLE_NAME} SET is_favorite = ? WHERE id = ?`,
+      [isFavorite ? 1 : 0, noteId],
+    );
+
+    if ((result.rowsAffected ?? 0) === 0) {
+      throw new Error(`Note with id ${noteId} does not exist.`);
+    }
+
+    return getNoteById(noteId);
+  } catch (error) {
+    throw wrapDbError('set note favorite', error);
+  }
+}
+
+export async function getFavoriteNotes(): Promise<NoteRecord[]> {
+  try {
+    await ensureInitialized();
+    const result = await executeSql(
+      `
+      SELECT id, title, body, tags, created_at, updated_at, is_favorite, deleted_at
+      FROM ${TABLE_NAME}
+      WHERE is_favorite = 1 AND deleted_at IS NULL
+      ORDER BY updated_at DESC
+      `,
+    );
+
+    return rowsToArray(result);
+  } catch (error) {
+    throw wrapDbError('fetch favorite notes', error);
+  }
+}
+
+export async function getDrawerStats(): Promise<{
+  allNotes: number;
+  favorites: number;
+  recycleBin: number;
+  tags: number;
+}> {
+  try {
+    await ensureInitialized();
+
+    const allNotesResult = await executeSql(
+      `SELECT COUNT(*) as count FROM ${TABLE_NAME} WHERE deleted_at IS NULL`,
+    );
+
+    const favoritesResult = await executeSql(
+      `SELECT COUNT(*) as count FROM ${TABLE_NAME} WHERE is_favorite = 1 AND deleted_at IS NULL`,
+    );
+
+    const recycleBinResult = await executeSql(
+      `SELECT COUNT(*) as count FROM ${TABLE_NAME} WHERE deleted_at IS NOT NULL`,
+    );
+
+    const allNotes = await executeSql(
+      `SELECT tags FROM ${TABLE_NAME} WHERE deleted_at IS NULL`,
+    );
+    const allTags = new Set<string>();
+    for (let i = 0; i < allNotes.rows.length; i += 1) {
+      const row = allNotes.rows.item(i);
+      const tags = String(row.tags ?? '')
+        .split(',')
+        .map((tag: string) => tag.trim())
+        .filter(Boolean);
+      tags.forEach((tag: string) => allTags.add(tag));
+    }
+
+    return {
+      allNotes: allNotesResult.rows.item(0).count,
+      favorites: favoritesResult.rows.item(0).count,
+      recycleBin: recycleBinResult.rows.item(0).count,
+      tags: allTags.size,
+    };
+  } catch (error) {
+    throw wrapDbError('fetch drawer stats', error);
   }
 }

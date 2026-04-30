@@ -5,6 +5,12 @@ export {
   getNoteById,
   updateNote,
   deleteNote,
+  getDeletedNotes,
+  permanentlyDeleteNote,
+  restoreNote,
+  setNoteFavorite,
+  getFavoriteNotes,
+  getDrawerStats,
   type NoteInput,
   type NoteRecord,
 } from './database';
