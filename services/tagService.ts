@@ -75,12 +75,9 @@ function extractKeywords(text: string): string[] {
 
 function filterTags(tags: string[]): string[] {
   return tags.filter(tag => {
-    // Remove overly long tags (often obscure scientific names)
-    if (tag.length > 15) return false;
-    // Remove tags with multiple spaces (phrases that aren't concise)
-    if (tag.split(' ').length > 2) return false;
-    // Remove empty strings
     if (!tag.trim()) return false;
+    if (tag.length > 20) return false;
+    if (tag.split(' ').length > 1) return false; // Only single words
     return true;
   });
 }
@@ -89,82 +86,57 @@ export function getTagServiceLoadingState(): boolean {
   return isTagServiceLoading;
 }
 
-export async function suggestTagsFromBody(noteBody: string): Promise<string[]> {
+export async function suggestTagsFromBody(
+  noteBody: string,
+  noteTitle?: string,
+): Promise<string[]> {
   if (!noteBody || !noteBody.trim()) {
     throw new Error('Note body is required to generate tag suggestions.');
   }
 
-  const keywords = extractKeywords(noteBody);
-  if (keywords.length === 0) {
+  // Extract keywords from both title and body
+  const titleKeywords = noteTitle ? extractKeywords(noteTitle) : [];
+  const bodyKeywords = extractKeywords(noteBody);
+  const allKeywords = Array.from(
+    new Set([...titleKeywords, ...bodyKeywords]),
+  );
+
+  if (allKeywords.length === 0) {
     return [];
   }
 
   isTagServiceLoading = true;
 
   try {
-    const responses = await Promise.all(
-      keywords.map(async keyword => {
+    // Start with the keywords themselves (primary tags)
+    const primaryTags = filterTags(allKeywords);
+
+    // Fetch synonyms for variety (only 1-2 per keyword)
+    const synonymResponses = await Promise.all(
+      allKeywords.map(async keyword => {
         try {
-          // Fetch related adjectives (practical descriptors)
-          const adjUrl = `${DATAMUSE_ENDPOINT}?rel_jjb=${encodeURIComponent(
+          const url = `${DATAMUSE_ENDPOINT}?rel_syn=${encodeURIComponent(
             keyword,
           )}&max=5`;
-          const adjResponse = await fetch(adjUrl);
-          const adjData =
-            adjResponse.ok ? ((await adjResponse.json()) as DatamuseWord[]) : [];
-          const adjTags = adjData.map(item => String(item.word ?? '').trim())
-            .filter(Boolean)
-            .slice(0, 2);
+          const response = await fetch(url);
+          if (!response.ok) return [];
 
-          // Fetch synonyms (direct related words)
-          const synUrl = `${DATAMUSE_ENDPOINT}?rel_syn=${encodeURIComponent(
-            keyword,
-          )}&max=5`;
-          const synResponse = await fetch(synUrl);
-          const synData =
-            synResponse.ok ? ((await synResponse.json()) as DatamuseWord[]) : [];
-          const synTags = synData.map(item => String(item.word ?? '').trim())
+          const data = (await response.json()) as DatamuseWord[];
+          return data
+            .map(item => String(item.word ?? '').trim())
             .filter(Boolean)
-            .slice(0, 2);
-
-          // Fetch broader categories (more general kinds)
-          const genUrl = `${DATAMUSE_ENDPOINT}?rel_gen=${encodeURIComponent(
-            keyword,
-          )}&max=5`;
-          const genResponse = await fetch(genUrl);
-          const genData =
-            genResponse.ok ? ((await genResponse.json()) as DatamuseWord[]) : [];
-          const genTags = genData.map(item => String(item.word ?? '').trim())
-            .filter(Boolean)
-            .slice(0, 2);
-
-          // Fetch specific subtypes (specific kinds)
-          const spcUrl = `${DATAMUSE_ENDPOINT}?rel_spc=${encodeURIComponent(
-            keyword,
-          )}&max=5`;
-          const spcResponse = await fetch(spcUrl);
-          const spcData =
-            spcResponse.ok ? ((await spcResponse.json()) as DatamuseWord[]) : [];
-          const spcTags = spcData.map(item => String(item.word ?? '').trim())
-            .filter(Boolean)
-            .slice(0, 2);
-
-          // Combine: adjectives, synonyms, categories, then subtypes
-          return [...adjTags, ...synTags, ...genTags, ...spcTags];
-        } catch (error) {
-          console.warn(
-            `Tag fetch error for "${keyword}":`,
-            error instanceof Error ? error.message : 'Unknown error',
-          );
+            .slice(0, 1); // Only 1 synonym per keyword
+        } catch {
           return [];
         }
       }),
     );
 
-    let merged = responses.flat().map(tag => tag.toLowerCase());
-    merged = filterTags(merged);
-    const deduped = Array.from(new Set(merged));
-    return deduped.slice(0, 8);
+    const synonymTags = filterTags(synonymResponses.flat());
+
+    // Combine: primary keywords first, then synonyms
+    const allTags = Array.from(new Set([...primaryTags, ...synonymTags]));
+    return allTags.slice(0, 8);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown tag service error';

@@ -123,7 +123,7 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
     setIsSuggesting(true);
 
     try {
-      const suggestions = await suggestTagsFromBody(body);
+      const suggestions = await suggestTagsFromBody(body, title);
       setSuggestedTags(suggestions);
       showToast(suggestions.length > 0 ? 'Tags suggested' : 'No tags found');
     } catch (error) {
