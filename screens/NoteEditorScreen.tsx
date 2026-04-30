@@ -155,9 +155,9 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
     try {
       const suggestions = await suggestTagsFromBody(body);
       setSuggestedTags(suggestions);
-      showToast(suggestions.length > 0 ? 'Tags suggested' : 'No tags found');
+      showToast(suggestions.length > 0 ? 'Folders suggested' : 'No folders found');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Tag suggestion failed';
+      const message = error instanceof Error ? error.message : 'Folder suggestion failed';
       showToast(message);
     } finally {
       setIsSuggesting(false);
@@ -263,7 +263,7 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
             onPress={handleSuggestTags}
           >
             <Text style={[styles.actionButtonText, styles.suggestButtonText]}>
-              Suggest Tags
+              Suggest Folders
             </Text>
           </Pressable>
 
@@ -280,10 +280,10 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
-        <Text style={styles.label}>Add Tag</Text>
+        <Text style={styles.label}>Add Folder</Text>
         <View style={styles.inlineRow}>
           <TextInput
-            placeholder="Type a tag"
+            placeholder="Type a folder"
             style={[styles.input, styles.inlineInput]}
             value={manualTagInput}
             onChangeText={setManualTagInput}

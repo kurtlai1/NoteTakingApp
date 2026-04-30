@@ -32,7 +32,7 @@ export function getTagServiceLoadingState(): boolean {
 
 export async function suggestTagsFromBody(noteBody: string): Promise<string[]> {
   if (!noteBody || !noteBody.trim()) {
-    throw new Error('Note body is required to generate tag suggestions.');
+    throw new Error('Note body is required to generate folder suggestions.');
   }
 
   const keywords = extractKeywords(noteBody);
@@ -61,8 +61,8 @@ export async function suggestTagsFromBody(noteBody: string): Promise<string[]> {
     const deduped = Array.from(new Set(merged));
     return deduped.slice(0, 5);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown tag service error';
-    throw new Error(`Failed to suggest tags: ${message}`);
+    const message = error instanceof Error ? error.message : 'Unknown folder service error';
+    throw new Error(`Failed to suggest folders: ${message}`);
   } finally {
     isTagServiceLoading = false;
   }

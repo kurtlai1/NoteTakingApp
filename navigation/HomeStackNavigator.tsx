@@ -23,15 +23,9 @@ export default function HomeStackNavigator() {
       <Stack.Screen
         name="HomeMain"
         component={HomeScreen}
-        options={({ navigation }) => ({
-          title: 'Home',
-          headerRight: () => (
-            <Button
-              title="New"
-              onPress={() => navigation.navigate('NoteEditor', {})}
-            />
-          ),
-        })}
+        options={{
+          title: 'Sparky Note Application',
+        }}
       />
       <Stack.Screen
         name="NoteDetail"

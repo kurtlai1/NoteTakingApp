@@ -4,6 +4,8 @@ export const CREATE_NOTES_TABLE_SQL = `
 		title TEXT NOT NULL,
 		body TEXT NOT NULL,
 		tags TEXT,
+		is_favorite INTEGER NOT NULL DEFAULT 0,
+		deleted_at TEXT,
 		created_at TEXT NOT NULL,
 		updated_at TEXT NOT NULL
 	);

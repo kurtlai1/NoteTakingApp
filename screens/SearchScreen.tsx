@@ -11,6 +11,8 @@ type NoteRow = {
   title: string;
   body: string;
   tags: string;
+  is_favorite: number;
+  deleted_at: string | null;
   updated_at: string;
 };
 
@@ -66,7 +68,7 @@ export default function SearchScreen() {
       <View style={styles.searchBar}>
         <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
         <TextInput
-          placeholder="Search title, body, or tags"
+          placeholder="Search title, body, or folders"
           placeholderTextColor="#94a3b8"
           style={styles.searchInput}
           value={query}
@@ -85,6 +87,7 @@ export default function SearchScreen() {
             body={item.body}
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
+            isFavorite={item.is_favorite === 1}
             onPress={() => navigation.navigate('Home', { screen: 'NoteDetail', params: { noteId: item.id } })}
           />
         )}

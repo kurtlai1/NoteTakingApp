@@ -70,9 +70,9 @@ export default function NoteEditor({
 				onChangeText={setBody}
 			/>
 
-			<Text style={styles.label}>Tags</Text>
-			<TextInput
-				placeholder="work, school, ideas"
+<Text style={styles.label}>Folders</Text>
+	<TextInput
+		placeholder="work, travel, ideas"
 				style={styles.input}
 				value={tagInput}
 				onChangeText={setTagInput}

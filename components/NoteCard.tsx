@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export type NoteCardProps = {
 	id: string | number;
@@ -7,6 +8,7 @@ export type NoteCardProps = {
 	body: string;
 	tags: string[];
 	updated_at: string | number | Date;
+	isFavorite?: boolean;
 	onPress: (id: string | number) => void;
 };
 
@@ -29,14 +31,25 @@ export default function NoteCard({
 	body,
 	tags,
 	updated_at,
+	isFavorite = false,
 	onPress,
 }: NoteCardProps) {
 	return (
 		<Pressable onPress={() => onPress(id)} style={styles.card}>
 			<View style={styles.headerRow}>
-				<Text style={styles.title} numberOfLines={1}>
-					{title}
-				</Text>
+				<View style={styles.titleRow}>
+					{isFavorite ? (
+						<MaterialCommunityIcons
+							name="star"
+							size={16}
+							color="#f59e0b"
+							style={styles.favoriteIcon}
+						/>
+					) : null}
+					<Text style={styles.title} numberOfLines={1}>
+						{title}
+					</Text>
+				</View>
 				<Text style={styles.updatedAt}>{formatUpdatedAt(updated_at)}</Text>
 			</View>
 
@@ -75,6 +88,9 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 	},
+	favoriteIcon: {
+		marginRight: 4,
+	},
 	tagChip: {
 		backgroundColor: '#eef6ff',
 		borderRadius: 999,
@@ -87,6 +103,12 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		flexWrap: 'wrap',
 		marginTop: 4,
+	},
+	titleRow: {
+		alignItems: 'center',
+		flex: 1,
+		flexDirection: 'row',
+		marginRight: 8,
 	},
 	tagText: {
 		color: '#1565c0',
