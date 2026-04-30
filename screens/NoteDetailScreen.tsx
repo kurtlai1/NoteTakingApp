@@ -104,7 +104,7 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 
 			{tags.length > 0 ? (
 				<>
-					<Text style={styles.subheading}>Folders</Text>
+					<Text style={styles.subheading}>Tags</Text>
 					<View style={styles.tagsRow}>
 						{tags.map(tag => (
 							<View key={tag} style={styles.tagChip}>

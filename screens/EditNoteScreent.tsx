@@ -11,7 +11,7 @@ export default function EditNoteScreent() {
 	return (
 		<ScreenContainer scrollable>
 			<Text style={styles.title}>Edit Note</Text>
-			<Text style={styles.subtitle}>Update title, body, and folders.</Text>
+			<Text style={styles.subtitle}>Update title, body, and tags.</Text>
 			<NoteEditor
 				initialValue={{
 					title: 'Existing Note',

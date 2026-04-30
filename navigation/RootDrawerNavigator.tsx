@@ -24,7 +24,7 @@ type DrawerStats = {
   allNotes: number;
   favorites: number;
   recycleBin: number;
-  folders: number;
+  tags: number;
 };
 
 function parseTags(tags: string): string[] {
@@ -40,9 +40,9 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     allNotes: 0,
     favorites: 0,
     recycleBin: 0,
-    folders: 0,
+    tags: 0,
   });
-  const [folders, setFolders] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
 
   const loadDrawerData = useCallback(async () => {
     try {
@@ -51,16 +51,18 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         getAllNotes(),
       ]);
 
-      const folderSet = new Set<string>();
+      const tagSet = new Set<string>();
       (allNotes as Array<{ tags: string }>).forEach(note => {
-        parseTags(note.tags).forEach(tag => folderSet.add(tag));
+        parseTags(note.tags).forEach(tag => tagSet.add(tag));
       });
 
       setStats(drawerStats as DrawerStats);
-      setFolders(Array.from(folderSet).sort((left, right) => left.localeCompare(right)));
+      setTags(
+        Array.from(tagSet).sort((left, right) => left.localeCompare(right)),
+      );
     } catch {
-      setStats({ allNotes: 0, favorites: 0, recycleBin: 0, folders: 0 });
-      setFolders([]);
+      setStats({ allNotes: 0, favorites: 0, recycleBin: 0, tags: 0 });
+      setTags([]);
     }
   }, []);
 
@@ -69,13 +71,22 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   }, [loadDrawerData, drawerStatus]);
 
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerContent}>
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={styles.drawerContent}
+    >
       <Pressable
         style={styles.drawerRow}
-        onPress={() => props.navigation.navigate('MainTabs', { screen: 'Home' })}
+        onPress={() =>
+          props.navigation.navigate('MainTabs', { screen: 'Home' })
+        }
       >
         <View style={styles.drawerRowLeft}>
-          <MaterialCommunityIcons name="note-multiple-outline" color="#111827" size={22} />
+          <MaterialCommunityIcons
+            name="note-multiple-outline"
+            color="#111827"
+            size={22}
+          />
           <Text style={styles.drawerLabel}>All notes</Text>
         </View>
         <Text style={styles.drawerCount}>{stats.allNotes}</Text>
@@ -86,7 +97,11 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         onPress={() => props.navigation.navigate('Favorites')}
       >
         <View style={styles.drawerRowLeft}>
-          <MaterialCommunityIcons name="star-outline" color="#111827" size={22} />
+          <MaterialCommunityIcons
+            name="star-outline"
+            color="#111827"
+            size={22}
+          />
           <Text style={styles.drawerLabel}>Favorites</Text>
         </View>
         <Text style={styles.drawerCount}>{stats.favorites}</Text>
@@ -97,7 +112,11 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         onPress={() => props.navigation.navigate('RecycleBin')}
       >
         <View style={styles.drawerRowLeft}>
-          <MaterialCommunityIcons name="delete-outline" color="#111827" size={22} />
+          <MaterialCommunityIcons
+            name="delete-outline"
+            color="#111827"
+            size={22}
+          />
           <Text style={styles.drawerLabel}>Recycle bin</Text>
         </View>
         <Text style={styles.drawerCount}>{stats.recycleBin}</Text>
@@ -106,21 +125,33 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
       <Text style={styles.dottedLine}>............................</Text>
 
       <Pressable
-        style={[styles.drawerRow, styles.folderHeaderRow]}
-        onPress={() => props.navigation.navigate('MainTabs', { screen: 'Folders' })}
+        style={[styles.drawerRow, styles.tagHeaderRow]}
+        onPress={() =>
+          props.navigation.navigate('MainTabs', { screen: 'Tags' })
+        }
       >
         <View style={styles.drawerRowLeft}>
-          <MaterialCommunityIcons name="folder-outline" color="#111827" size={22} />
-          <Text style={styles.drawerLabel}>Folders</Text>
+          <MaterialCommunityIcons
+            name="tag-outline"
+            color="#111827"
+            size={22}
+          />
+          <Text style={styles.drawerLabel}>Tags</Text>
         </View>
-        <Text style={styles.drawerCount}>{stats.folders}</Text>
+        <Text style={styles.drawerCount}>{stats.tags}</Text>
       </Pressable>
 
-      <View style={styles.folderList}>
-        {folders.map(folder => (
-          <View key={folder} style={styles.folderItem}>
-            <MaterialCommunityIcons name="folder-outline" color="#1f2937" size={18} />
-            <Text style={styles.folderItemText} numberOfLines={1}>{folder}</Text>
+      <View style={styles.tagList}>
+        {tags.map(tag => (
+          <View key={tag} style={styles.tagItem}>
+            <MaterialCommunityIcons
+              name="tag-outline"
+              color="#1f2937"
+              size={18}
+            />
+            <Text style={styles.tagItemText} numberOfLines={1}>
+              {tag}
+            </Text>
           </View>
         ))}
       </View>
@@ -144,7 +175,11 @@ export default function RootDrawerNavigator() {
         options={{
           title: 'All notes',
           drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="note-multiple-outline" color={color} size={size} />
+            <MaterialCommunityIcons
+              name="note-multiple-outline"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -154,7 +189,11 @@ export default function RootDrawerNavigator() {
         options={{
           title: 'Favorites',
           drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="star-outline" color={color} size={size} />
+            <MaterialCommunityIcons
+              name="star-outline"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -164,7 +203,11 @@ export default function RootDrawerNavigator() {
         options={{
           title: 'Recycle bin',
           drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="delete-outline" color={color} size={size} />
+            <MaterialCommunityIcons
+              name="delete-outline"
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -210,23 +253,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexShrink: 1,
   },
-  folderHeaderRow: {
+  tagHeaderRow: {
     backgroundColor: '#e5e7eb',
     borderRadius: 8,
   },
-  folderItem: {
+  tagItem: {
     alignItems: 'center',
     flexDirection: 'row',
     marginBottom: 8,
     paddingHorizontal: 8,
   },
-  folderItemText: {
+  tagItemText: {
     color: '#111827',
     flex: 1,
     fontSize: 18,
     marginLeft: 8,
   },
-  folderList: {
+  tagList: {
     marginTop: 6,
   },
 });

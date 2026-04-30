@@ -4,12 +4,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import HomeStackNavigator from './HomeStackNavigator';
 import SearchScreen from '../screens/SearchScreen';
-import FoldersScreen from '../screens/TagsScreen';
+import TagsScreen from '../screens/TagsScreen';
 
 export type MainTabParamList = {
   Home: undefined;
   Search: undefined;
-  Folders: undefined;
+  Tags: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -23,9 +23,11 @@ export default function MainTabNavigator() {
         tabBarInactiveTintColor: '#64748b',
         tabBarIcon: ({ color, size }) => {
           const iconName =
-            route.name === 'Home' ? 'home-variant-outline' : 'folder-outline';
+            route.name === 'Home' ? 'home-variant-outline' : 'tag-outline';
 
-          return <MaterialCommunityIcons name={iconName} color={color} size={size} />;
+          return (
+            <MaterialCommunityIcons name={iconName} color={color} size={size} />
+          );
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -64,7 +66,11 @@ export default function MainTabNavigator() {
                 pressed && { opacity: 0.92 },
               ]}
             >
-              <MaterialCommunityIcons name="note-edit-outline" color="#ffffff" size={34} />
+              <MaterialCommunityIcons
+                name="note-edit-outline"
+                color="#ffffff"
+                size={34}
+              />
             </Pressable>
           ),
           tabBarLabelStyle: { fontSize: 1 },
@@ -72,13 +78,16 @@ export default function MainTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: event => {
             event.preventDefault();
-            navigation.navigate('Home' as never, {
-              screen: 'NoteEditor',
-            } as never);
+            navigation.navigate(
+              'Home' as never,
+              {
+                screen: 'NoteEditor',
+              } as never,
+            );
           },
         })}
       />
-      <Tab.Screen name="Folders" component={FoldersScreen} />
+      <Tab.Screen name="Tags" component={TagsScreen} />
     </Tab.Navigator>
   );
 }

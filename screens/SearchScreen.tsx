@@ -68,7 +68,7 @@ export default function SearchScreen() {
       <View style={styles.searchBar}>
         <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
         <TextInput
-          placeholder="Search title, body, or folders"
+          placeholder="Search title, body, or tags"
           placeholderTextColor="#94a3b8"
           style={styles.searchInput}
           value={query}
