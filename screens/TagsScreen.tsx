@@ -191,9 +191,7 @@ export default function TagsScreen() {
             : notes.filter(n => parseTags(n.tags).includes(tag)).length;
           const selected = selectedTags.includes(tag);
           const colorKey = summary?.colorKey;
-          const chipColor = selected
-            ? getSelectedTagColor(tag)
-            : colorKey
+          const chipColor = colorKey
             ? getColorByKey(colorKey)
             : stringToColor(tag);
 
@@ -208,11 +206,7 @@ export default function TagsScreen() {
               onPress={() => toggleSelectTag(tag)}
               onLongPress={() => openManageModal(tag)}
             >
-              <Text
-                style={[styles.tagText, selected && styles.tagTextSelected]}
-              >
-                {tag}
-              </Text>
+              <Text style={styles.tagText}>{tag}</Text>
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>{count}</Text>
               </View>
@@ -388,8 +382,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tagChipSelected: {
-    borderColor: 'rgba(255,255,255,0.35)',
-    borderWidth: 1,
+    borderColor: '#0f172a',
+    borderWidth: 2,
     shadowColor: '#0f172a',
     shadowOpacity: 0.14,
     shadowRadius: 8,
@@ -400,7 +394,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   tagText: {
     color: '#0f172a',

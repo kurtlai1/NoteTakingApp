@@ -97,6 +97,12 @@ export default function SearchScreen() {
   return (
     <ScreenContainer>
       <View style={styles.headerRow}>
+        <Pressable
+          onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#0f172a" />
+        </Pressable>
         <MaterialCommunityIcons name="magnify" size={26} color="#0f766e" />
         <Text style={styles.title}>Search</Text>
       </View>
@@ -176,6 +182,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+  },
+  backButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+    padding: 4,
   },
   searchInput: {
     color: '#0f172a',

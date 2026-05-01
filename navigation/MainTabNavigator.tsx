@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import HomeStackNavigator from './HomeStackNavigator';
-import TagsScreen from '../screens/TagsScreen';
+import { TagsScreen } from '../screens';
 import FloatingActionButton from '../components/FloatingActionButton';
 
 export type MainTabParamList = {

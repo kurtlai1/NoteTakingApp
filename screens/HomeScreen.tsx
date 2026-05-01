@@ -14,7 +14,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
 import NoteCard from '../components/NoteCard';
 import ScreenContainer from '../components/ScreenContainer';
-import { getAllNotes, getTagsSummary, TagColorKey } from '../database/database';
+import {
+  getAllNotes,
+  getTagsSummary,
+  TagColorKey,
+  TAG_COLOR_OPTIONS,
+} from '../database/database';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'HomeMain'>;
 
@@ -133,6 +138,13 @@ export default function HomeScreen({ route, navigation }: Props) {
     return map;
   }, [tagsSummary]);
 
+  const getTagColor = (tag: string): string => {
+    const colorKey = tagColorMap[tag];
+    if (!colorKey) return '#eef6ff';
+    const colorOption = TAG_COLOR_OPTIONS.find(opt => opt.key === colorKey);
+    return colorOption ? colorOption.color : '#eef6ff';
+  };
+
   const filteredNotes = useMemo(() => {
     console.log(
       'Computing filteredNotes - selectedTag:',
@@ -235,20 +247,24 @@ export default function HomeScreen({ route, navigation }: Props) {
             >
               <Text style={styles.tagText}>All</Text>
             </TouchableOpacity>
-            {tags.map(tag => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagPill,
-                  selectedTag === tag && styles.tagPillActive,
-                ]}
-                onPress={() =>
-                  setSelectedTag(prev => (prev === tag ? '' : tag))
-                }
-              >
-                <Text style={styles.tagText}>{tag}</Text>
-              </TouchableOpacity>
-            ))}
+            {tags.map(tag => {
+              const isSelected = selectedTag === tag;
+              return (
+                <TouchableOpacity
+                  key={tag}
+                  style={[
+                    styles.tagPill,
+                    { backgroundColor: getTagColor(tag) },
+                    isSelected && styles.tagPillActive,
+                  ]}
+                  onPress={() =>
+                    setSelectedTag(prev => (prev === tag ? '' : tag))
+                  }
+                >
+                  <Text style={styles.tagText}>{tag}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -366,15 +382,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagPillActive: {
-    backgroundColor: '#1e88e5',
-    borderColor: '#1e88e5',
+    borderColor: '#0f172a',
+    borderWidth: 2,
   },
   tagSection: {
     marginTop: 8,
     marginBottom: 16,
   },
   tagText: {
-    color: '#334155',
+    color: '#0f172a',
     fontSize: 13,
     fontWeight: '600',
   },

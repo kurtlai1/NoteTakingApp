@@ -15,7 +15,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ConfirmDialog from '../components/ConfirmDialog';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
-import { createNote, getNoteById, updateNote } from '../database/database';
+import {
+  createNote,
+  getNoteById,
+  getTagsSummary,
+  TagColorKey,
+  TAG_COLOR_OPTIONS,
+  updateNote,
+} from '../database/database';
 import { suggestTagsFromBody } from '../services/tagService';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'NoteEditor'>;
@@ -52,6 +59,14 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSaveConfirmVisible, setIsSaveConfirmVisible] = useState(false);
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: TagColorKey | null;
+    }>
+  >([]);
 
   const noteId = route.params?.noteId;
 
@@ -81,6 +96,21 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
     }, [noteId]),
   );
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadTagsSummary = async () => {
+        try {
+          const result = await getTagsSummary();
+          setTagsSummary(result);
+        } catch {
+          setTagsSummary([]);
+        }
+      };
+
+      loadTagsSummary();
+    }, []),
+  );
+
   const showToast = (message: string) => {
     if (Platform.OS === 'android') {
       ToastAndroid.show(message, ToastAndroid.SHORT);
@@ -105,6 +135,19 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
     });
   };
 
+  const toggleTag = (tag: string) => {
+    const normalized = tag.trim().toLowerCase();
+    if (!normalized) {
+      return;
+    }
+
+    setSelectedTags(prev =>
+      prev.includes(normalized)
+        ? prev.filter(item => item !== normalized)
+        : [...prev, normalized],
+    );
+  };
+
   const removeTag = (tag: string) => {
     setSelectedTags(prev => prev.filter(item => item !== tag));
   };
@@ -112,6 +155,34 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   const handleAddManualTag = () => {
     addTag(manualTagInput);
     setManualTagInput('');
+  };
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    tagsSummary.forEach(summary => {
+      if (summary.colorKey) {
+        map[summary.tag] = summary.colorKey;
+      }
+    });
+    return map;
+  }, [tagsSummary]);
+
+  const createdTags = useMemo(() => {
+    return [...tagsSummary].sort((left, right) => {
+      const leftDate = new Date(left.latest).getTime();
+      const rightDate = new Date(right.latest).getTime();
+      return rightDate - leftDate;
+    });
+  }, [tagsSummary]);
+
+  const getTagColor = (tag: string): string => {
+    const colorKey = tagColorMap[tag];
+    if (!colorKey) return '#eef6ff';
+
+    const colorOption = TAG_COLOR_OPTIONS.find(
+      option => option.key === colorKey,
+    );
+    return colorOption ? colorOption.color : '#eef6ff';
   };
 
   const handleSuggestTags = async () => {
@@ -230,6 +301,34 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
           </View>
         ) : null}
 
+        <Text style={styles.label}>Created Tags</Text>
+        {createdTags.length > 0 ? (
+          <View style={styles.chipsWrap}>
+            {createdTags.map(item => {
+              const normalizedTag = item.tag.trim().toLowerCase();
+              const isSelected = selectedTags.includes(normalizedTag);
+
+              return (
+                <Pressable
+                  key={item.tag}
+                  style={[
+                    styles.createdTagChip,
+                    { backgroundColor: getTagColor(item.tag) },
+                    isSelected && styles.createdTagChipSelected,
+                  ]}
+                  onPress={() => toggleTag(item.tag)}
+                >
+                  <Text style={styles.createdTagChipText}>{item.tag}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={styles.emptyTagsText}>
+            No created tags yet. Add one below or suggest tags from your note.
+          </Text>
+        )}
+
         <Text style={styles.label}>Add Tag</Text>
         <View style={styles.inlineRow}>
           <TextInput
@@ -316,6 +415,23 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginTop: 8,
   },
+  createdTagChip: {
+    borderColor: '#0f172a',
+    borderRadius: 999,
+    borderWidth: 1,
+    marginRight: 8,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  createdTagChipSelected: {
+    borderWidth: 2,
+  },
+  createdTagChipText: {
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   disabledButton: {
     opacity: 0.5,
   },
@@ -355,6 +471,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 12,
+  },
+  emptyTagsText: {
+    color: '#64748b',
+    marginTop: 6,
   },
   saveButton: {
     backgroundColor: '#2563eb',

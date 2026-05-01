@@ -17,12 +17,14 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import MainTabNavigator from './MainTabNavigator';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import RecycleBinScreen from '../screens/RecycleBinScreen';
+import SearchScreen from '../screens/SearchScreen';
 import { getAllNotes, getDrawerStats } from '../database/database';
 
 export type RootDrawerParamList = {
   MainTabs: undefined;
   Favorites: undefined;
   RecycleBin: undefined;
+  Search: undefined;
 };
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
@@ -233,6 +235,13 @@ export default function RootDrawerNavigator() {
               size={size}
             />
           ),
+        }}
+      />
+      <Drawer.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{
+          title: 'Search',
         }}
       />
     </Drawer.Navigator>
