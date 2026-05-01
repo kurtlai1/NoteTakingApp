@@ -97,7 +97,6 @@ export default function TagsScreen() {
     return map;
   }, [tagsSummary]);
 
-  // OR behavior: show notes that contain any selected tag
   const filteredNotes = useMemo(() => {
     if (selectedTags.length === 0) return notes;
     return notes.filter(note =>
@@ -182,6 +181,7 @@ export default function TagsScreen() {
       </View>
 
       <Text style={styles.subtitle}>Browse notes by tag categories.</Text>
+      <Text style={styles.subtitle}>Long press a tag to manage it.</Text>
 
       <View style={styles.tagsWrap}>
         {tags.map(tag => {
