@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: 4,
   },
   safeArea: {
     backgroundColor: '#f8fafc',
