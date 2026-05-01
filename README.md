@@ -2,6 +2,13 @@
 
 NoteTakingApp is a React Native mobile application note manager built with local SQLite storage. It is designed for Android and focuses on fast note capture, organization, and retrieval through favorites, tags, search, and a recycle bin.
 
+## Contributors
+
+- [kyleyamatoc-bot](https://github.com/kyleyamatoc-bot)
+- [kurtlai1](https://github.com/kurtlai1)
+- [Jun-Yin67](https://github.com/Jun-Yin67)
+- [yongxennzz](https://github.com/yongxennzz)
+
 ## Features
 
 - Create, edit, and delete notes locally on the device.
