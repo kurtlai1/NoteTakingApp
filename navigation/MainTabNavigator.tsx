@@ -5,9 +5,12 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import HomeStackNavigator from './HomeStackNavigator';
 import SearchScreen from '../screens/SearchScreen';
 import TagsScreen from '../screens/TagsScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type MainTabParamList = {
-  Home: undefined;
+  Home: {
+    selectedTag?: string;
+  };
   Search: undefined;
   Tags: undefined;
 };
@@ -15,6 +18,8 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -33,13 +38,24 @@ export default function MainTabNavigator() {
           fontSize: 12,
         },
         tabBarStyle: {
-          height: 66,
-          paddingBottom: 8,
+          height: 60,
+          paddingBottom: 4,
           paddingTop: 8,
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackNavigator} />
+      <Tab.Screen
+        name="Home"
+        component={HomeStackNavigator}
+        options={{
+          headerShown: false,
+        }}
+        listeners={({ navigation, route }) => ({
+          tabPress: e => {
+            // Allow default behavior
+          },
+        })}
+      />
       <Tab.Screen
         name="Search"
         component={SearchScreen}

@@ -3,7 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen, NoteDetailScreen, NoteEditorScreen } from '../screens';
 
 export type HomeStackParamList = {
-  HomeMain: undefined;
+  HomeMain: {
+    selectedTag?: string;
+  };
   NoteDetail: {
     noteId?: number;
   };

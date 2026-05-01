@@ -23,7 +23,7 @@ export default function ScreenContainer({
 	);
 
 	return (
-		<SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={styles.safeArea}>
+		<SafeAreaView edges={['top', 'left', 'right','bottom']} style={styles.safeArea}>
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 				style={styles.keyboardAvoider}
@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		padding: 16,
 		paddingTop: 20,
+		paddingBottom: 30,
 	},
 	safeArea: {
 		backgroundColor: '#f8fafc',
@@ -51,5 +52,6 @@ const styles = StyleSheet.create({
 		flexGrow: 1,
 		padding: 16,
 		paddingTop: 20,
+		paddingBottom: 30,
 	},
 });

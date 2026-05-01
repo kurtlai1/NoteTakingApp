@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +13,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
 import NoteCard from '../components/NoteCard';
+import ScreenContainer from '../components/ScreenContainer';
 import { getAllNotes } from '../database/database';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'HomeMain'>;
@@ -38,14 +41,25 @@ const SORT_OPTIONS = [
   { key: 'title', label: 'Title' },
 ];
 
-export default function HomeScreen({ navigation }: Props) {
+export default function HomeScreen({ route, navigation }: Props) {
   const [notes, setNotes] = useState<HomeNote[]>([]);
-  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedTag, setSelectedTag] = useState(
+    route.params?.selectedTag || '',
+  );
   const [sortOption, setSortOption] = useState<'newest' | 'oldest' | 'title'>(
     'newest',
   );
   const [showSortMenu, setShowSortMenu] = useState(false);
   const parentNavigation = useNavigation();
+
+  // Update selected tag when route params change
+  useFocusEffect(
+    useCallback(() => {
+      const tag = route.params?.selectedTag || '';
+      console.log('HomeScreen focus - route.params:', route.params, 'tag:', tag);
+      setSelectedTag(tag);
+    }, [route.params?.selectedTag]),
+  );
 
   const loadNotes = useCallback(async () => {
     try {
@@ -64,15 +78,30 @@ export default function HomeScreen({ navigation }: Props) {
 
   const tags = useMemo(() => {
     const allTags = notes.flatMap(note => parseTags(note.tags));
-    return Array.from(new Set(allTags)).sort((left, right) =>
-      left.localeCompare(right),
-    );
+    const uniqueTags = Array.from(new Set(allTags));
+    
+    // Sort by most recent creation date (newest first)
+    return uniqueTags.sort((left, right) => {
+      const leftNotes = notes.filter(note => parseTags(note.tags).includes(left));
+      const rightNotes = notes.filter(note => parseTags(note.tags).includes(right));
+      
+      const leftDate = leftNotes.length > 0 
+        ? new Date(leftNotes[0].updated_at).getTime() 
+        : 0;
+      const rightDate = rightNotes.length > 0 
+        ? new Date(rightNotes[0].updated_at).getTime() 
+        : 0;
+      
+      return rightDate - leftDate; // newest first
+    });
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
+    console.log('Computing filteredNotes - selectedTag:', selectedTag, 'total notes:', notes.length);
     const filtered = selectedTag
       ? notes.filter(note => parseTags(note.tags).includes(selectedTag))
       : notes;
+    console.log('Filtered notes count:', filtered.length);
 
     return [...filtered].sort((left, right) => {
       if (sortOption === 'title') {
@@ -89,95 +118,98 @@ export default function HomeScreen({ navigation }: Props) {
   }, [notes, selectedTag, sortOption]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topHeader}>
-        <TouchableOpacity
-          onPress={() => (parentNavigation as any).openDrawer()}
-          style={styles.menuButton}
-        >
-          <Text style={styles.menuIcon}>☰</Text>
-        </TouchableOpacity>
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Home</Text>
-          <Text style={styles.statsText}>
-            {tags.length} tags · {filteredNotes.length} notes
-          </Text>
-        </View>
-        <View style={styles.headerIconsRow}>
+    <ScreenContainer>
+      <View style={styles.headerSection}>
+        <View style={styles.topHeader}>
           <TouchableOpacity
-            onPress={() => (parentNavigation as any).navigate('Search')}
-            style={styles.iconButton}
+            onPress={() => (parentNavigation as any).openDrawer()}
+            style={styles.menuButton}
           >
-            <MaterialCommunityIcons name="magnify" size={24} color="#334155" />
+            <Text style={styles.menuIcon}>☰</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowSortMenu(!showSortMenu)}
-            style={styles.iconButton}
-          >
-            <Text style={styles.headerIcon}>⋮</Text>
-          </TouchableOpacity>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Home</Text>
+            <Text style={styles.statsText}>
+              {tags.length} tags · {filteredNotes.length} notes
+            </Text>
+          </View>
+          <View style={styles.headerIconsRow}>
+            <TouchableOpacity
+              onPress={() => (parentNavigation as any).navigate('Search')}
+              style={styles.iconButton}
+            >
+              <MaterialCommunityIcons name="magnify" size={24} color="#334155" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowSortMenu(!showSortMenu)}
+              style={styles.iconButton}
+            >
+              <Text style={styles.headerIcon}>⋮</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {showSortMenu && (
-        <View style={styles.sortMenuContainer}>
-          <Text style={styles.sortLabel}>Sort</Text>
-          <View style={styles.sortOptionsRow}>
-            {SORT_OPTIONS.map(option => (
-              <TouchableOpacity
-                key={option.key}
-                style={[
-                  styles.sortPill,
-                  sortOption === option.key && styles.sortPillActive,
-                ]}
-                onPress={() => {
-                  setSortOption(option.key as 'newest' | 'oldest' | 'title');
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={
-                    sortOption === option.key
-                      ? styles.sortTextActive
-                      : styles.sortText
-                  }
+        {showSortMenu && (
+          <>
+            <Pressable
+              style={styles.sortMenuOverlay}
+              onPress={() => setShowSortMenu(false)}
+            />
+            <View style={styles.sortOverflowMenu}>
+              {SORT_OPTIONS.map(option => (
+                <Pressable
+                  key={option.key}
+                  style={styles.sortOverflowOption}
+                  onPress={() => {
+                    setSortOption(option.key as 'newest' | 'oldest' | 'title');
+                    setShowSortMenu(false);
+                  }}
                 >
-                  {option.label}
-                </Text>
+                  <Text
+                    style={[
+                      styles.sortOverflowText,
+                      sortOption === option.key && styles.sortOverflowTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={styles.tagSection}>
+          <Text style={styles.sectionHeading}>Tags</Text>
+          <View style={styles.tagRow}>
+            <TouchableOpacity
+              style={[styles.tagPill, !selectedTag && styles.tagPillActive]}
+              onPress={() => setSelectedTag('')}
+            >
+              <Text style={styles.tagText}>All</Text>
+            </TouchableOpacity>
+            {tags.map(tag => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.tagPill,
+                  selectedTag === tag && styles.tagPillActive,
+                ]}
+                onPress={() => setSelectedTag(prev => (prev === tag ? '' : tag))}
+              >
+                <Text style={styles.tagText}>{tag}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-      )}
 
-      <View style={styles.tagSection}>
-        <Text style={styles.sectionHeading}>Tags</Text>
-        <View style={styles.tagRow}>
-          <TouchableOpacity
-            style={[styles.tagPill, !selectedTag && styles.tagPillActive]}
-            onPress={() => setSelectedTag('')}
-          >
-            <Text style={styles.tagText}>All</Text>
-          </TouchableOpacity>
-          {tags.map(tag => (
-            <TouchableOpacity
-              key={tag}
-              style={[
-                styles.tagPill,
-                selectedTag === tag && styles.tagPillActive,
-              ]}
-              onPress={() => setSelectedTag(prev => (prev === tag ? '' : tag))}
-            >
-              <Text style={styles.tagText}>{tag}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Text style={styles.subtitle}>Recent notes</Text>
       </View>
 
-      <Text style={styles.subtitle}>Recent notes</Text>
-
       <FlatList
-        contentContainerStyle={styles.listContent}
+        style={styles.flatList}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
+        scrollEnabled={true}
         data={filteredNotes}
         keyExtractor={item => String(item.id)}
         ListEmptyComponent={
@@ -199,7 +231,7 @@ export default function HomeScreen({ navigation }: Props) {
           />
         )}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -214,6 +246,22 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: '600',
+  },
+  container: {
+    backgroundColor: '#f8fafc',
+    flex: 1,
+    padding: 16,
+  },
+  headerSection: {
+    marginBottom: 0,
+  },
+  headerContent: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
+  flatList: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
   },
   topHeader: {
     alignItems: 'center',
@@ -244,19 +292,6 @@ const styles = StyleSheet.create({
   headerIcon: {
     fontSize: 24,
   },
-  sortMenuContainer: {
-    backgroundColor: '#ffffff',
-    borderBottomColor: '#e2e8f0',
-    borderBottomWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  container: {
-    backgroundColor: '#f8fafc',
-    flex: 1,
-    padding: 16,
-  },
   emptyText: {
     color: '#64748b',
     fontSize: 14,
@@ -267,13 +302,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
-    justifyContent: 'space-between',
+    gap: 8,
   },
   tagPill: {
     borderColor: '#cbd5e1',
     borderRadius: 999,
     borderWidth: 1,
-    marginBottom: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
     width: '30%',
@@ -285,7 +319,8 @@ const styles = StyleSheet.create({
     borderColor: '#1e88e5',
   },
   tagSection: {
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 16,
   },
   tagText: {
     color: '#334155',
@@ -351,7 +386,45 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#666666',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  sortMenuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+  },
+  sortOverflowMenu: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderColor: '#e2e8f0',
+    borderWidth: 1,
+    minWidth: 140,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sortOverflowOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  sortOverflowText: {
+    color: '#334155',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sortOverflowTextActive: {
+    color: '#1e88e5',
+    fontWeight: '700',
   },
 });

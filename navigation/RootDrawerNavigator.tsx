@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   DrawerContentScrollView,
   createDrawerNavigator,
@@ -143,7 +143,24 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
       <View style={styles.tagList}>
         {tags.map(tag => (
-          <View key={tag} style={styles.tagItem}>
+          <TouchableOpacity
+            key={tag}
+            activeOpacity={0.6}
+            style={styles.tagItem}
+            onPress={() => {
+              props.navigation.closeDrawer();
+              setTimeout(() => {
+                console.log('Drawer tag clicked, navigating with tag:', tag);
+                (props.navigation as any).navigate('MainTabs', {
+                  screen: 'Home',
+                  params: {
+                    screen: 'HomeMain',
+                    params: { selectedTag: tag },
+                  },
+                });
+              }, 300);
+            }}
+          >
             <MaterialCommunityIcons
               name="tag-outline"
               color="#1f2937"
@@ -152,7 +169,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
             <Text style={styles.tagItemText} numberOfLines={1}>
               {tag}
             </Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </DrawerContentScrollView>
@@ -260,16 +277,20 @@ const styles = StyleSheet.create({
   tagItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    marginBottom: 8,
-    paddingHorizontal: 8,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   tagItemText: {
-    color: '#111827',
+    color: '#334155',
     flex: 1,
-    fontSize: 18,
-    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '500',
+    marginLeft: 12,
   },
   tagList: {
-    marginTop: 6,
+    marginTop: 16,
+    paddingHorizontal: 6,
   },
 });

@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ScreenContainer from '../components/ScreenContainer';
@@ -89,63 +90,96 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 		navigation.replace('NoteEditor', noteId ? { noteId } : {});
 	};
 
+	const [showMenu, setShowMenu] = useState(false);
+
 	const tags = parseTags(note?.tags ?? '');
+
+	// Set header options with star and three-dots
+	useEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+					{/* Star favorite */}
+					<Pressable
+						onPress={handleToggleFavorite}
+						style={{ padding: 8 }}
+					>
+						<MaterialCommunityIcons
+							name={note?.is_favorite === 1 ? 'star' : 'star-outline'}
+							size={24}
+							color={note?.is_favorite === 1 ? '#fbbf24' : '#cbd5e1'}
+						/>
+					</Pressable>
+
+					{/* Three-dots menu button */}
+					<Pressable
+						onPress={() => setShowMenu(!showMenu)}
+						style={{ padding: 8 }}
+					>
+						<MaterialCommunityIcons name="dots-vertical" size={24} color="#334155" />
+					</Pressable>
+				</View>
+			),
+		});
+	}, [note?.is_favorite, showMenu, navigation, handleToggleFavorite]);
 
 	return (
 		<ScreenContainer scrollable>
-			{!noteId ? null : (
+			{/* Overflow menu - rendered at screen level to avoid header clipping */}
+			{showMenu && (
 				<>
-			<View style={styles.headerRow}>
-				<Text style={styles.title}>{note?.title ?? 'New Note'}</Text>
-				<Text style={styles.updatedAt}>
-					{note?.updated_at ? `Updated ${formatDate(note.updated_at)}` : 'No saved content yet'}
-				</Text>
-			</View>
-
-			{tags.length > 0 ? (
-				<>
-					<Text style={styles.subheading}>Tags</Text>
-					<View style={styles.tagsRow}>
-						{tags.map(tag => (
-							<View key={tag} style={styles.tagChip}>
-								<Text style={styles.tagText}>#{tag}</Text>
-							</View>
-						))}
+					<Pressable
+						style={styles.menuOverlay}
+						onPress={() => setShowMenu(false)}
+					/>
+					<View style={styles.screenOverflowMenu}>
+						<Pressable
+							style={styles.menuItem}
+							onPress={() => {
+								setShowMenu(false);
+								setIsDeleteDialogVisible(true);
+							}}
+						>
+							<MaterialCommunityIcons name="delete-outline" size={20} color="#ef4444" />
+							<Text style={styles.menuItemText}>Delete</Text>
+						</Pressable>
 					</View>
 				</>
-			) : null}
+			)}
+
+			{!noteId ? null : (
+				<>
+					{/* Note title */}
+					<Text style={styles.title}>{note?.title ?? 'New Note'}</Text>
+					<Text style={styles.updatedAt}>
+						{note?.updated_at ? `Updated ${formatDate(note.updated_at)}` : 'No saved content yet'}
+					</Text>
+
+					{/* Tags */}
+					{tags.length > 0 ? (
+						<>
+							<Text style={styles.subheading}>Tags</Text>
+							<View style={styles.tagsRow}>
+								{tags.map(tag => (
+									<View key={tag} style={styles.tagChip}>
+										<Text style={styles.tagText}>#{tag}</Text>
+									</View>
+								))}
+							</View>
+						</>
+					) : null}
+
+				</>
+			)}
 
 			<Text style={styles.bodyText}>
 				{note?.body ?? 'This note has no content yet. Tap Edit to create your note.'}
 			</Text>
 
-			<View style={styles.actions}>
-				{note ? (
-					<Pressable
-						style={[styles.button, styles.favoriteButton]}
-						onPress={handleToggleFavorite}
-					>
-						<Text style={[styles.buttonText, styles.favoriteText]}>
-							{note.is_favorite === 1 ? 'Unfavorite' : 'Favorite'}
-						</Text>
-					</Pressable>
-				) : null}
-
-				<Pressable style={[styles.button, styles.editButton]} onPress={handleOpenEditor}>
-					<Text style={[styles.buttonText, styles.editText]}>
-						{note ? 'Edit' : 'Create'}
-					</Text>
-				</Pressable>
-
-				{note ? (
-					<Pressable
-						style={[styles.button, styles.deleteButton]}
-						onPress={() => setIsDeleteDialogVisible(true)}
-					>
-						<Text style={[styles.buttonText, styles.deleteText]}>Delete</Text>
-					</Pressable>
-				) : null}
-			</View>
+			{/* Edit button below notes on right side */}
+			<Pressable style={styles.editButton} onPress={handleOpenEditor}>
+				<Text style={styles.editButtonText}>Edit</Text>
+			</Pressable>
 
 			<ConfirmDialog
 				visible={isDeleteDialogVisible}
@@ -154,18 +188,48 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 				confirmText="Move"
 				onConfirm={handleDelete}
 				onCancel={() => setIsDeleteDialogVisible(false)}
-			/>
-				</>
-			)}
-		</ScreenContainer>
+		/>
+	</ScreenContainer>
 	);
 }
 
 const styles = StyleSheet.create({
-	actions: {
+	menuOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'transparent',
+		zIndex: 999,
+	},
+	screenOverflowMenu: {
+		position: 'absolute',
+		top: 0,
+		right: 40,
+		backgroundColor: '#ffffff',
+		borderRadius: 10,
+		borderColor: '#e2e8f0',
+		borderWidth: 1,
+		minWidth: 140,
+		zIndex: 1000,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 5,
+	},
+	menuItem: {
 		flexDirection: 'row',
-		justifyContent: 'flex-end',
-		marginTop: 24,
+		alignItems: 'center',
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+	},
+	menuItemText: {
+		marginLeft: 8,
+		fontSize: 14,
+		fontWeight: '500',
+		color: '#334155',
 	},
 	bodyText: {
 		color: '#1f2937',
@@ -173,36 +237,19 @@ const styles = StyleSheet.create({
 		lineHeight: 24,
 		marginTop: 16,
 	},
-	button: {
-		borderRadius: 8,
-		marginLeft: 10,
-		paddingHorizontal: 16,
+	editButton: {
+		alignSelf: 'flex-end',
+		backgroundColor: '#1e88e5',
+		borderRadius: 6,
+		paddingHorizontal: 20,
 		paddingVertical: 10,
+		marginTop: 16,
+		marginBottom: 8,
 	},
-	buttonText: {
+	editButtonText: {
 		fontSize: 14,
 		fontWeight: '600',
-	},
-	deleteButton: {
-		backgroundColor: '#fee2e2',
-	},
-	deleteText: {
-		color: '#b91c1c',
-	},
-	editButton: {
-		backgroundColor: '#e0e7ff',
-	},
-	editText: {
-		color: '#1d4ed8',
-	},
-	favoriteButton: {
-		backgroundColor: '#fef3c7',
-	},
-	favoriteText: {
-		color: '#b45309',
-	},
-	headerRow: {
-		alignItems: 'flex-start',
+		color: '#ffffff',
 	},
 	tagChip: {
 		backgroundColor: '#eef6ff',

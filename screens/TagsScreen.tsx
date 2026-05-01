@@ -45,9 +45,22 @@ export default function TagsScreen() {
 
   const tags = useMemo(() => {
     const allTags = notes.flatMap(note => parseTags(note.tags));
-    return Array.from(new Set(allTags)).sort((left, right) =>
-      left.localeCompare(right),
-    );
+    const uniqueTags = Array.from(new Set(allTags));
+    
+    // Sort by most recent creation date (newest first)
+    return uniqueTags.sort((left, right) => {
+      const leftNotes = notes.filter(note => parseTags(note.tags).includes(left));
+      const rightNotes = notes.filter(note => parseTags(note.tags).includes(right));
+      
+      const leftDate = leftNotes.length > 0 
+        ? new Date(leftNotes[0].updated_at).getTime() 
+        : 0;
+      const rightDate = rightNotes.length > 0 
+        ? new Date(rightNotes[0].updated_at).getTime() 
+        : 0;
+      
+      return rightDate - leftDate; // newest first
+    });
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
