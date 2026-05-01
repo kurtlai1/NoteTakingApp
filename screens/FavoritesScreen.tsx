@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NoteCard from '../components/NoteCard';
@@ -44,9 +44,21 @@ export default function FavoritesScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.headerRow}>
-        <MaterialCommunityIcons name="star-outline" size={26} color="#d97706" />
-        <Text style={styles.title}>Favorites</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={{ padding: 6, marginRight: 8 }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={26} color="#111827" />
+        </Pressable>
+        <View style={styles.headerRow}>
+          <MaterialCommunityIcons
+            name="star-outline"
+            size={26}
+            color="#d97706"
+          />
+          <Text style={styles.title}>Favorites</Text>
+        </View>
       </View>
       <Text style={styles.subtitle}>Your starred notes.</Text>
 
@@ -62,12 +74,21 @@ export default function FavoritesScreen() {
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
             isFavorite={item.is_favorite === 1}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home', params: { screen: 'NoteDetail', params: { noteId: item.id } } })}
+            onPress={() =>
+              navigation.navigate('MainTabs', {
+                screen: 'Home',
+                params: { screen: 'NoteDetail', params: { noteId: item.id } },
+              })
+            }
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="star-off-outline" size={32} color="#94a3b8" />
+            <MaterialCommunityIcons
+              name="star-off-outline"
+              size={32}
+              color="#94a3b8"
+            />
             <Text style={styles.emptyText}>No favorite notes yet.</Text>
           </View>
         }
@@ -97,6 +118,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginLeft: 0,
   },
   title: {
     color: '#0f172a',

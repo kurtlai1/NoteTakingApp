@@ -1,9 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ScreenContainer from '../components/ScreenContainer';
-import { getDeletedNotes, permanentlyDeleteNote, restoreNote } from '../database/database';
+import {
+  getDeletedNotes,
+  permanentlyDeleteNote,
+  restoreNote,
+} from '../database/database';
 
 type NoteRow = {
   id: number;
@@ -28,8 +39,11 @@ function formatDeletedAt(value: string | null): string {
   return date.toLocaleString();
 }
 
+import { useNavigation } from '@react-navigation/native';
+
 export default function RecycleBinScreen() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const navigation = useNavigation<any>();
 
   const loadDeletedNotes = useCallback(async () => {
     try {
@@ -66,11 +80,25 @@ export default function RecycleBinScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.headerRow}>
-        <MaterialCommunityIcons name="delete-outline" size={26} color="#dc2626" />
-        <Text style={styles.title}>Recycle Bin</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={{ padding: 6, marginRight: 8 }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={26} color="#111827" />
+        </Pressable>
+        <View style={styles.headerRow}>
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={26}
+            color="#dc2626"
+          />
+          <Text style={styles.title}>Recycle Bin</Text>
+        </View>
       </View>
-      <Text style={styles.subtitle}>Notes moved here are not deleted permanently yet.</Text>
+      <Text style={styles.subtitle}>
+        Notes moved here are not deleted permanently yet.
+      </Text>
 
       <FlatList
         contentContainerStyle={styles.listContent}
@@ -78,9 +106,15 @@ export default function RecycleBinScreen() {
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.cardBody} numberOfLines={2}>{item.body}</Text>
-            <Text style={styles.deletedAt}>Deleted: {formatDeletedAt(item.deleted_at)}</Text>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.cardBody} numberOfLines={2}>
+              {item.body}
+            </Text>
+            <Text style={styles.deletedAt}>
+              Deleted: {formatDeletedAt(item.deleted_at)}
+            </Text>
 
             <View style={styles.cardActionsRow}>
               <Pressable
@@ -104,7 +138,11 @@ export default function RecycleBinScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="delete-empty-outline" size={32} color="#94a3b8" />
+            <MaterialCommunityIcons
+              name="delete-empty-outline"
+              size={32}
+              color="#94a3b8"
+            />
             <Text style={styles.emptyText}>Recycle bin is empty.</Text>
           </View>
         }
@@ -182,6 +220,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginLeft: 0,
   },
   title: {
     color: '#0f172a',
