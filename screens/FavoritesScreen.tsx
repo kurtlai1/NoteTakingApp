@@ -76,23 +76,29 @@ export default function FavoritesScreen() {
 
   return (
     <ScreenContainer>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={{ padding: 6, marginRight: 8 }}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={26} color="#111827" />
-        </Pressable>
-        <View style={styles.headerRow}>
-          <MaterialCommunityIcons
-            name="star-outline"
-            size={26}
-            color="#d97706"
-          />
-          <Text style={styles.title}>Favorites</Text>
+      <View style={styles.headerSection}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={{ padding: 6, marginRight: 8 }}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={26}
+              color="#111827"
+            />
+          </Pressable>
+          <View style={styles.headerRow}>
+            <MaterialCommunityIcons
+              name="star-outline"
+              size={26}
+              color="#d97706"
+            />
+            <Text style={styles.title}>Favorites</Text>
+          </View>
         </View>
+        <Text style={styles.subtitle}>Your starred notes.</Text>
       </View>
-      <Text style={styles.subtitle}>Your starred notes.</Text>
 
       <FlatList
         contentContainerStyle={styles.listContent}
@@ -146,6 +152,9 @@ const styles = StyleSheet.create({
   subtitle: {
     color: '#64748b',
     marginTop: 4,
+  },
+  headerSection: {
+    paddingTop: 12,
   },
   headerRow: {
     alignItems: 'center',

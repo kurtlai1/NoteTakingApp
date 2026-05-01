@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -156,6 +156,14 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
             />
           </Pressable>
 
+          <Pressable onPress={handleOpenEditor} style={{ padding: 8 }}>
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={24}
+              color="#2563eb"
+            />
+          </Pressable>
+
           {/* Three-dots menu button */}
           <Pressable
             onPress={() => setShowMenu(!showMenu)}
@@ -200,47 +208,50 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
         </>
       )}
 
-      {!noteId ? null : (
-        <>
-          {/* Note title */}
-          <Text style={styles.title}>{note?.title ?? 'New Note'}</Text>
-          <Text style={styles.updatedAt}>
-            {note?.updated_at
-              ? `Updated ${formatDate(note.updated_at)}`
-              : 'No saved content yet'}
-          </Text>
+      <View style={styles.heroCard}>
+        <View style={styles.heroStack}>
+          <Text style={styles.title}>{note?.title ?? 'Untitled note'}</Text>
 
-          {/* Tags */}
-          {tags.length > 0 ? (
-            <>
-              <Text style={styles.subheading}>Tags</Text>
-              <View style={styles.tagsRow}>
-                {tags.map(tag => (
-                  <View
-                    key={tag}
-                    style={[
-                      styles.tagChip,
-                      { backgroundColor: getTagColor(tag) },
-                    ]}
-                  >
-                    <Text style={styles.tagText}>#{tag}</Text>
-                  </View>
-                ))}
+          <View style={styles.heroMetaRow}>
+            <Text style={styles.updatedAt}>
+              {note?.updated_at
+                ? `Updated ${formatDate(note.updated_at)}`
+                : 'No saved content yet'}
+            </Text>
+
+            <View style={styles.metaDivider} />
+
+            <Text style={styles.characterCount}>
+              {note?.body?.length ?? 0} characters
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {tags.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Tags: {tags.length}</Text>
+          <View style={styles.tagsRow}>
+            {tags.map(tag => (
+              <View
+                key={tag}
+                style={[styles.tagChip, { backgroundColor: getTagColor(tag) }]}
+              >
+                <Text style={styles.tagText}>#{tag}</Text>
               </View>
-            </>
-          ) : null}
-        </>
-      )}
+            ))}
+          </View>
+        </View>
+      ) : null}
 
-      <Text style={styles.bodyText}>
-        {note?.body ??
-          'This note has no content yet. Tap Edit to create your note.'}
-      </Text>
-
-      {/* Edit button below notes on right side */}
-      <Pressable style={styles.editButton} onPress={handleOpenEditor}>
-        <Text style={styles.editButtonText}>Edit</Text>
-      </Pressable>
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>Body</Text>
+        <View style={styles.divider} />
+        <Text style={styles.bodyText}>
+          {note?.body ??
+            'This note has no content yet. Tap Edit to create your note.'}
+        </Text>
+      </View>
 
       <ConfirmDialog
         visible={isDeleteDialogVisible}
@@ -255,6 +266,106 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  activeSecondaryActionButton: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#f59e0b',
+    borderWidth: 1,
+  },
+  activeSecondaryActionButtonText: {
+    color: '#92400e',
+  },
+  bodyText: {
+    color: '#1e293b',
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#cbd5e1',
+    borderStyle: 'dashed',
+    marginBottom: 12,
+  },
+  cancelAction: {
+    backgroundColor: '#e2e8f0',
+  },
+  cancelActionText: {
+    color: '#0f172a',
+  },
+  ghostActionButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#dbe4ef',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+  },
+  secondaryActionButton: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    borderWidth: 1,
+  },
+  secondaryActionButtonText: {
+    color: '#334155',
+  },
+  heroCard: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 12,
+    padding: 18,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  heroStatusStack: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  heroMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8,
+  },
+  heroStack: {
+    flexDirection: 'column',
+  },
+  metaDivider: {
+    backgroundColor: '#cbd5e1',
+    height: 14,
+    width: 1,
+  },
+  kicker: {
+    color: '#0f766e',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  sectionCard: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 14,
+    padding: 16,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 1,
+  },
+  sectionLabel: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
   menuOverlay: {
     position: 'absolute',
     top: 0,
@@ -292,58 +403,63 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#334155',
   },
-  bodyText: {
-    color: '#1f2937',
-    fontSize: 15,
-    lineHeight: 24,
-    marginTop: 16,
-  },
-  editButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#1e88e5',
-    borderRadius: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
   tagChip: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f8fafc',
     borderRadius: 999,
     marginRight: 8,
     marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
   },
   tagText: {
     color: '#0f172a',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   title: {
     color: '#0f172a',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
+    lineHeight: 34,
   },
   updatedAt: {
     color: '#64748b',
+    fontSize: 13,
+  },
+  characterCount: {
+    color: '#64748b',
+    fontSize: 13,
     marginTop: 6,
   },
-  subheading: {
-    color: '#475569',
-    fontSize: 13,
+  statusPill: {
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusPillMuted: {
+    backgroundColor: '#eef2ff',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusPillMutedText: {
+    color: '#3730a3',
+    fontSize: 12,
     fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
+  },
+  statusPillText: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

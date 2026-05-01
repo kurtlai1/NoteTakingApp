@@ -359,29 +359,39 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
 
   return (
     <ScreenContainer scrollable>
-      <Text style={styles.title}>Note Editor</Text>
+
       <Text style={styles.subtitle}>Create or update your note details.</Text>
 
-      <View style={styles.formCard}>
-        <Text style={styles.label}>Title</Text>
-        <TextInput
-          placeholder="Enter note title"
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-        />
+      {/* Note Content Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Note Content</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Title</Text>
+          <TextInput
+            placeholder="Enter note title"
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholderTextColor="#94a3b8"
+          />
 
-        <Text style={styles.label}>Body</Text>
-        <TextInput
-          multiline
-          placeholder="Write your note..."
-          style={[styles.input, styles.bodyInput]}
-          textAlignVertical="top"
-          value={body}
-          onChangeText={setBody}
-        />
+          <Text style={styles.label}>Body</Text>
+          <TextInput
+            multiline
+            placeholder="Write your note..."
+            style={[styles.input, styles.bodyInput]}
+            textAlignVertical="top"
+            value={body}
+            onChangeText={setBody}
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
+      </View>
 
-        <View style={styles.inlineRow}>
+      {/* Tag Suggestions Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Tag Suggestions</Text>
           <Pressable
             style={[
               styles.actionButton,
@@ -391,125 +401,174 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
             disabled={isSuggesting}
             onPress={handleSuggestTags}
           >
+            {isSuggesting ? (
+              <ActivityIndicator color="#1d4ed8" size="small" />
+            ) : (
+              <MaterialCommunityIcons
+                name="lightbulb-outline"
+                size={14}
+                color="#1d4ed8"
+                style={{ marginRight: 4 }}
+              />
+            )}
             <Text style={[styles.actionButtonText, styles.suggestButtonText]}>
-              Suggest Tags
-            </Text>
-          </Pressable>
-
-          {isSuggesting ? (
-            <ActivityIndicator color="#1d4ed8" size="small" />
-          ) : null}
-        </View>
-
-        {suggestedTags.length > 0 ? (
-          <View style={styles.chipsWrap}>
-            {suggestedTags.map(tag => (
-              <Pressable
-                key={tag}
-                style={styles.suggestedChip}
-                onPress={() => openTagColorPicker(tag, 'suggested')}
-              >
-                <Text style={styles.suggestedChipText}>+ {tag}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        <Text style={styles.label}>Created Tags</Text>
-        {createdTags.length > 0 ? (
-          <View style={styles.chipsWrap}>
-            {createdTags.map(item => {
-              const normalizedTag = item.tag.trim().toLowerCase();
-              const isSelected = selectedTags.includes(normalizedTag);
-
-              return (
-                <Pressable
-                  key={item.tag}
-                  style={[
-                    styles.createdTagChip,
-                    { backgroundColor: getTagColor(item.tag) },
-                    isSelected && styles.createdTagChipSelected,
-                  ]}
-                  onPress={() => toggleTag(item.tag)}
-                >
-                  <Text style={styles.createdTagChipText}>{item.tag}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={styles.emptyTagsText}>
-            No created tags yet. Add one below or suggest tags from your note.
-          </Text>
-        )}
-
-        <Text style={styles.label}>Add Tag</Text>
-        <View style={styles.inlineRow}>
-          <TextInput
-            placeholder="Type a tag"
-            style={[styles.input, styles.inlineInput]}
-            value={manualTagInput}
-            onChangeText={setManualTagInput}
-          />
-          <Pressable
-            style={[styles.actionButton, styles.addTagButton]}
-            onPress={handleAddManualTag}
-          >
-            <Text style={[styles.actionButtonText, styles.addTagText]}>
-              Add
+              Suggest
             </Text>
           </Pressable>
         </View>
 
-        {selectedTags.length > 0 ? (
-          <View style={styles.selectedTagsList}>
-            {selectedTags.map(tag => (
-              <View key={tag} style={styles.selectedTagRow}>
+        <View style={styles.card}>
+          {suggestedTags.length > 0 ? (
+            <View style={styles.chipsWrap}>
+              {suggestedTags.map(tag => (
                 <Pressable
-                  style={[
-                    styles.selectedChip,
-                    { backgroundColor: getResolvedTagColor(tag) },
-                  ]}
-                  onPress={() => removeTag(tag)}
+                  key={tag}
+                  style={styles.suggestedChip}
+                  onPress={() => openTagColorPicker(tag, 'suggested')}
                 >
-                  <Text style={styles.selectedChipText}>{tag}</Text>
                   <MaterialCommunityIcons
-                    name="close-circle"
-                    size={18}
-                    color="#666"
-                    style={{ marginLeft: 6 }}
+                    name="plus"
+                    size={13}
+                    color="#0e7490"
+                    style={{ marginRight: 4 }}
                   />
+                  <Text style={styles.suggestedChipText}>{tag}</Text>
                 </Pressable>
-
-                <Pressable
-                  style={[
-                    styles.colorButton,
-                    { backgroundColor: getResolvedTagColor(tag) },
-                  ]}
-                  onPress={() => openTagColorPicker(tag, 'selected')}
-                >
-                  <Text style={styles.colorButtonText}>Color</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        <View style={styles.footerActions}>
-          <Pressable
-            style={[
-              styles.actionButton,
-              styles.saveButton,
-              !canSave && styles.disabledButton,
-            ]}
-            disabled={!canSave}
-            onPress={handleSave}
-          >
-            <Text style={[styles.actionButtonText, styles.saveButtonText]}>
-              Save
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyStateText}>
+              Write some content and tap "Suggest" to get AI-powered tag
+              suggestions
             </Text>
-          </Pressable>
+          )}
         </View>
+      </View>
+
+      {/* Available Tags Section */}
+      {createdTags.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Available Tags ({createdTags.length})
+          </Text>
+          <View style={styles.card}>
+            <View style={styles.chipsWrap}>
+              {createdTags.map(item => {
+                const normalizedTag = item.tag.trim().toLowerCase();
+                const isSelected = selectedTags.includes(normalizedTag);
+
+                return (
+                  <Pressable
+                    key={item.tag}
+                    style={[
+                      styles.createdTagChip,
+                      { backgroundColor: getTagColor(item.tag) },
+                      isSelected && styles.createdTagChipSelected,
+                    ]}
+                    onPress={() => toggleTag(item.tag)}
+                  >
+                    <Text style={styles.createdTagChipText}>{item.tag}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {/* Add Tag Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Add New Tag</Text>
+        <View style={styles.card}>
+          <View style={styles.addTagRow}>
+            <TextInput
+              placeholder="Type a tag name"
+              style={[styles.input, styles.inlineInput]}
+              value={manualTagInput}
+              onChangeText={setManualTagInput}
+              placeholderTextColor="#94a3b8"
+            />
+            <Pressable
+              style={[styles.actionButton, styles.addTagButton]}
+              onPress={handleAddManualTag}
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={14}
+                color="#0f172a"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[styles.actionButtonText, styles.addTagText]}>
+                Add
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* Selected Tags Section */}
+      {selectedTags.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Selected Tags ({selectedTags.length})
+          </Text>
+          <View style={styles.card}>
+            <View style={styles.selectedTagsList}>
+              {selectedTags.map(tag => (
+                <View key={tag} style={styles.selectedTagItem}>
+                  <Pressable
+                    style={[
+                      styles.selectedTagChip,
+                      { backgroundColor: getResolvedTagColor(tag) },
+                    ]}
+                    onPress={() => removeTag(tag)}
+                  >
+                    <Text style={styles.selectedChipText}>{tag}</Text>
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={16}
+                      color="#334155"
+                      style={{ marginLeft: 8 }}
+                    />
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.colorAssignButton,
+                      { borderColor: getResolvedTagColor(tag) },
+                    ]}
+                    onPress={() => openTagColorPicker(tag, 'selected')}
+                  >
+                    <View
+                      style={[
+                        styles.colorIndicator,
+                        { backgroundColor: getResolvedTagColor(tag) },
+                      ]}
+                    />
+                    <Text style={styles.colorAssignButtonText}>Color</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {/* Action Buttons */}
+      <View style={styles.footerActions}>
+        <Pressable
+          style={[
+            styles.actionButton,
+            styles.saveButton,
+            !canSave && styles.disabledButton,
+          ]}
+          disabled={!canSave}
+          onPress={handleSave}
+        >
+          <Text style={[styles.actionButtonText, styles.saveButtonText]}>
+            Save Note
+          </Text>
+        </Pressable>
       </View>
 
       <ConfirmDialog
@@ -624,26 +683,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
   },
-  colorButton: {
-    borderRadius: 999,
-    marginLeft: 8,
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  colorButtonText: {
-    color: '#0f172a',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   addTagButton: {
     backgroundColor: '#e2e8f0',
-    marginLeft: 8,
+  },
+  addTagRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
   },
   addTagText: {
     color: '#0f172a',
@@ -651,19 +705,43 @@ const styles = StyleSheet.create({
   bodyInput: {
     minHeight: 140,
   },
+  card: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
   chipsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    gap: 8,
+  },
+  colorAssignButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  colorAssignButtonText: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  colorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   createdTagChip: {
     borderColor: '#0f172a',
     borderRadius: 999,
     borderWidth: 1,
-    marginRight: 8,
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   createdTagChipSelected: {
     borderWidth: 2,
@@ -676,26 +754,20 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
+  emptyStateText: {
+    color: '#94a3b8',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   footerActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 20,
-  },
-  formCard: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
+    marginBottom: 20,
   },
   inlineInput: {
     flex: 1,
     marginTop: 0,
-  },
-  inlineRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginTop: 10,
   },
   input: {
     backgroundColor: '#ffffff',
@@ -709,50 +781,60 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#334155',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginTop: 12,
-  },
-  emptyTagsText: {
-    color: '#64748b',
-    marginTop: 6,
+    marginTop: 10,
   },
   saveButton: {
     backgroundColor: '#2563eb',
-    marginLeft: 10,
   },
   saveButtonText: {
     color: '#ffffff',
   },
-  selectedChip: {
+  section: {
+    marginVertical: 12,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 999,
-    marginRight: 8,
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   selectedChipText: {
     color: '#0f172a',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
-  selectedTagRow: {
-    alignItems: 'center',
+  selectedTagChip: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flex: 1,
+  },
+  selectedTagItem: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 10,
   },
   selectedTagsList: {
-    marginTop: 8,
+    gap: 8,
   },
   subtitle: {
     color: '#64748b',
-    marginBottom: 10,
+    marginBottom: 16,
   },
   suggestButton: {
     backgroundColor: '#eff6ff',
-    marginRight: 10,
+    gap: 4,
   },
   suggestButtonText: {
     color: '#1d4ed8',
@@ -760,15 +842,21 @@ const styles = StyleSheet.create({
   suggestedChip: {
     backgroundColor: '#ecfeff',
     borderRadius: 999,
-    marginRight: 8,
-    marginTop: 8,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   suggestedChipText: {
     color: '#0e7490',
     fontSize: 13,
     fontWeight: '600',
+  },
+  title: {
+    color: '#0f172a',
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   colorPickerActions: {
     flexDirection: 'row',
@@ -834,11 +922,5 @@ const styles = StyleSheet.create({
   },
   saveColorButtonText: {
     color: '#ffffff',
-  },
-  title: {
-    color: '#0f172a',
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
   },
 });

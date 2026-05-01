@@ -80,25 +80,31 @@ export default function RecycleBinScreen() {
 
   return (
     <ScreenContainer>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={{ padding: 6, marginRight: 8 }}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={26} color="#111827" />
-        </Pressable>
-        <View style={styles.headerRow}>
-          <MaterialCommunityIcons
-            name="delete-outline"
-            size={26}
-            color="#dc2626"
-          />
-          <Text style={styles.title}>Recycle Bin</Text>
+      <View style={styles.headerSection}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={{ padding: 6, marginRight: 8 }}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={26}
+              color="#111827"
+            />
+          </Pressable>
+          <View style={styles.headerRow}>
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={26}
+              color="#dc2626"
+            />
+            <Text style={styles.title}>Recycle Bin</Text>
+          </View>
         </View>
+        <Text style={styles.subtitle}>
+          Notes moved here are not deleted permanently yet.
+        </Text>
       </View>
-      <Text style={styles.subtitle}>
-        Notes moved here are not deleted permanently yet.
-      </Text>
 
       <FlatList
         contentContainerStyle={styles.listContent}
@@ -215,6 +221,9 @@ const styles = StyleSheet.create({
   subtitle: {
     color: '#64748b',
     marginTop: 4,
+  },
+  headerSection: {
+    paddingTop: 12,
   },
   headerRow: {
     alignItems: 'center',

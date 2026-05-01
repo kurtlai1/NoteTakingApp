@@ -18,7 +18,12 @@ import MainTabNavigator from './MainTabNavigator';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import RecycleBinScreen from '../screens/RecycleBinScreen';
 import SearchScreen from '../screens/SearchScreen';
-import { getAllNotes, getDrawerStats } from '../database/database';
+import {
+  getAllNotes,
+  getDrawerStats,
+  getTagsSummary,
+  TAG_COLOR_OPTIONS,
+} from '../database/database';
 
 export type RootDrawerParamList = {
   MainTabs: undefined;
@@ -52,12 +57,21 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     tags: 0,
   });
   const [tags, setTags] = useState<string[]>([]);
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: string | null;
+    }>
+  >([]);
 
   const loadDrawerData = useCallback(async () => {
     try {
-      const [drawerStats, allNotes] = await Promise.all([
+      const [drawerStats, allNotes, summary] = await Promise.all([
         getDrawerStats(),
         getAllNotes(),
+        getTagsSummary(),
       ]);
 
       const tagSet = new Set<string>();
@@ -69,11 +83,26 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
       setTags(
         Array.from(tagSet).sort((left, right) => left.localeCompare(right)),
       );
+      setTagsSummary(summary);
     } catch {
       setStats({ allNotes: 0, favorites: 0, recycleBin: 0, tags: 0 });
       setTags([]);
+      setTagsSummary([]);
     }
   }, []);
+
+  const getTagColor = (tag: string): string => {
+    const tagSummary = tagsSummary.find(t => t.tag === tag);
+    if (tagSummary?.colorKey) {
+      const colorOption = TAG_COLOR_OPTIONS.find(
+        opt => opt.key === tagSummary.colorKey,
+      );
+      if (colorOption) {
+        return colorOption.color;
+      }
+    }
+    return '#000000';
+  };
 
   useEffect(() => {
     loadDrawerData();
@@ -172,8 +201,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
           >
             <MaterialCommunityIcons
               name="tag-outline"
-              color="#1f2937"
-              size={18}
+              color={getTagColor(tag)}
+              size={24}
             />
             <Text style={styles.tagItemText} numberOfLines={1}>
               {tag}
@@ -303,10 +332,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    marginLeft: 12,
+    marginLeft: 6,
   },
   tagList: {
-    marginTop: 16,
     paddingHorizontal: 6,
   },
 });

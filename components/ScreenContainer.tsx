@@ -1,7 +1,5 @@
 import React, { type PropsWithChildren } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -25,26 +23,20 @@ export default function ScreenContainer({
   );
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoider}
-      >
-        {content}
-      </KeyboardAvoidingView>
+    <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+      {content}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardAvoider: {
-    flex: 1,
-  },
   content: {
     flex: 1,
-    padding: 16,
-    paddingTop: 0,
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 16,
     paddingBottom: 4,
+
   },
   safeArea: {
     backgroundColor: '#f8fafc',
@@ -52,8 +44,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 16,
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingLeft: 16,
+    paddingRight: 16,
   },
 });
