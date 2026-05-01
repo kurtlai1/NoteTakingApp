@@ -11,6 +11,7 @@ import {
   View,
   Platform,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ScreenContainer from '../components/ScreenContainer';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -471,7 +472,13 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
                   ]}
                   onPress={() => removeTag(tag)}
                 >
-                  <Text style={styles.selectedChipText}>{tag} x</Text>
+                  <Text style={styles.selectedChipText}>{tag}</Text>
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={18}
+                    color="#666"
+                    style={{ marginLeft: 6 }}
+                  />
                 </Pressable>
 
                 <Pressable
@@ -718,6 +725,8 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   selectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 999,
     marginRight: 8,
     marginTop: 8,
