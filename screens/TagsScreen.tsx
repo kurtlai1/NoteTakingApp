@@ -18,6 +18,7 @@ import {
   getTagsSummary,
   TagColorKey,
   setTagColor,
+  clearTagColor,
   renameTag,
   deleteTag,
   TAG_COLOR_OPTIONS,
@@ -122,6 +123,18 @@ export default function TagsScreen() {
       await loadTagsSummary();
     } catch (err) {
       Alert.alert('Error', (err as Error).message || 'Failed to set tag color');
+    }
+  };
+
+  const applyDefaultTagColor = async () => {
+    try {
+      await clearTagColor(manageTargetTag);
+      await loadTagsSummary();
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        (err as Error).message || 'Failed to set default tag color',
+      );
     }
   };
 
@@ -268,6 +281,26 @@ export default function TagsScreen() {
 
             <Text style={styles.colorSectionLabel}>Color</Text>
             <View style={styles.colorSwatches}>
+              {(() => {
+                const summary = tagsSummary.find(
+                  t => t.tag === manageTargetTag,
+                );
+                const isDefaultSelected = !summary?.colorKey;
+
+                return (
+                  <Pressable
+                    style={[
+                      styles.colorSwatch,
+                      styles.defaultColorSwatch,
+                      isDefaultSelected && styles.colorSwatchSelected,
+                    ]}
+                    onPress={applyDefaultTagColor}
+                  >
+                    <Text style={styles.colorSwatchLabel}>Default</Text>
+                  </Pressable>
+                );
+              })()}
+
               {TAG_COLOR_OPTIONS.map(option => {
                 const summary = tagsSummary.find(
                   t => t.tag === manageTargetTag,
@@ -320,13 +353,7 @@ export default function TagsScreen() {
 }
 
 function stringToColor(input: string) {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = input.charCodeAt(i) + ((hash << 5) - hash);
-    hash |= 0;
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 60%, 90%)`;
+  return '#f1f5f9';
 }
 
 function getSelectedTagColor(input: string) {
@@ -372,7 +399,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagChip: {
-    backgroundColor: '#eef6ff',
+    backgroundColor: '#f1f5f9',
     borderRadius: 999,
     marginRight: 8,
     marginTop: 10,
@@ -483,6 +510,9 @@ const styles = StyleSheet.create({
   colorSwatchSelected: {
     borderColor: '#0f172a',
   },
+  defaultColorSwatch: {
+    backgroundColor: '#f1f5f9',
+  },
   colorSwatchLabel: {
     color: '#0f172a',
     fontSize: 12,
@@ -507,9 +537,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
   },
   renameButton: {
-    backgroundColor: '#0f766e',
+    backgroundColor: '#0fee40',
   },
   deleteButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ff4a4a',
   },
 });

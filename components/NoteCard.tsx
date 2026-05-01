@@ -39,9 +39,9 @@ export default function NoteCard({
 }: NoteCardProps) {
   const getTagColor = (tag: string): string => {
     const colorKey = tagColors[tag];
-    if (!colorKey) return '#eef6ff';
+    if (!colorKey) return '#f1f5f9';
     const colorOption = TAG_COLOR_OPTIONS.find(opt => opt.key === colorKey);
-    return colorOption ? colorOption.color : '#eef6ff';
+    return colorOption ? colorOption.color : '#f1f5f9';
   };
 
   return (
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   tagChip: {
-    backgroundColor: '#eef6ff',
+    backgroundColor: '#f1f5f9',
     borderRadius: 999,
     marginRight: 8,
     marginTop: 8,

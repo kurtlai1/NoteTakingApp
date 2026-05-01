@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   ToastAndroid,
+  Modal,
   View,
   Platform,
 } from 'react-native';
@@ -21,6 +22,8 @@ import {
   getTagsSummary,
   TagColorKey,
   TAG_COLOR_OPTIONS,
+  clearTagColor,
+  setTagColor,
   updateNote,
 } from '../database/database';
 import { suggestTagsFromBody } from '../services/tagService';
@@ -34,11 +37,28 @@ type NoteRecord = {
   tags: string;
 };
 
+type TagColorTargetSource = 'manual' | 'suggested' | 'selected';
+
 function parseTags(tags: string): string[] {
   return String(tags ?? '')
     .split(',')
     .map(tag => tag.trim())
     .filter(Boolean);
+}
+
+function normalizeTag(tag: string): string {
+  return String(tag ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function stringToColor(input: string): string {
+  return '#f1f5f9';
+}
+
+function getColorByKey(colorKey: string): string {
+  const option = TAG_COLOR_OPTIONS.find(item => item.key === colorKey);
+  return option ? option.color : stringToColor(colorKey);
 }
 
 function mergeTags(primary: string[], secondary: string[]): string[] {
@@ -59,6 +79,13 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSaveConfirmVisible, setIsSaveConfirmVisible] = useState(false);
+  const [tagColorPickerVisible, setTagColorPickerVisible] = useState(false);
+  const [tagColorTarget, setTagColorTarget] = useState('');
+  const [tagColorTargetSource, setTagColorTargetSource] =
+    useState<TagColorTargetSource | null>(null);
+  const [tagColorDrafts, setTagColorDrafts] = useState<
+    Record<string, TagColorKey | null>
+  >({});
   const [tagsSummary, setTagsSummary] = useState<
     Array<{
       tag: string;
@@ -136,7 +163,7 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   };
 
   const toggleTag = (tag: string) => {
-    const normalized = tag.trim().toLowerCase();
+    const normalized = normalizeTag(tag);
     if (!normalized) {
       return;
     }
@@ -149,23 +176,80 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   };
 
   const removeTag = (tag: string) => {
-    setSelectedTags(prev => prev.filter(item => item !== tag));
+    const normalized = normalizeTag(tag);
+    setSelectedTags(prev =>
+      prev.filter(item => normalizeTag(item) !== normalized),
+    );
   };
 
   const handleAddManualTag = () => {
-    addTag(manualTagInput);
-    setManualTagInput('');
+    openTagColorPicker(manualTagInput, 'manual');
   };
 
   const tagColorMap = useMemo(() => {
     const map: Record<string, string> = {};
     tagsSummary.forEach(summary => {
       if (summary.colorKey) {
-        map[summary.tag] = summary.colorKey;
+        map[normalizeTag(summary.tag)] = summary.colorKey;
       }
     });
     return map;
   }, [tagsSummary]);
+
+  const getResolvedTagColorKey = useCallback(
+    (tag: string): TagColorKey | null => {
+      const normalizedTag = normalizeTag(tag);
+
+      if (Object.prototype.hasOwnProperty.call(tagColorDrafts, normalizedTag)) {
+        return tagColorDrafts[normalizedTag] ?? null;
+      }
+
+      return (tagColorMap[normalizedTag] as TagColorKey | undefined) ?? null;
+    },
+    [tagColorDrafts, tagColorMap],
+  );
+
+  const getResolvedTagColor = useCallback(
+    (tag: string): string => {
+      const colorKey = getResolvedTagColorKey(tag);
+      return colorKey ? getColorByKey(colorKey) : stringToColor(tag);
+    },
+    [getResolvedTagColorKey],
+  );
+
+  function openTagColorPicker(tag: string, source: TagColorTargetSource) {
+    const normalizedTag = normalizeTag(tag);
+    if (!normalizedTag) {
+      return;
+    }
+
+    setTagColorTarget(normalizedTag);
+    setTagColorTargetSource(source);
+    setTagColorPickerVisible(true);
+  }
+
+  function closeTagColorPicker() {
+    setTagColorPickerVisible(false);
+    setTagColorTarget('');
+    setTagColorTargetSource(null);
+  }
+
+  function commitTagWithColor() {
+    const normalizedTag = normalizeTag(tagColorTarget);
+    if (!normalizedTag) {
+      closeTagColorPicker();
+      return;
+    }
+
+    if (tagColorTargetSource !== 'selected') {
+      addTag(normalizedTag);
+      if (tagColorTargetSource === 'manual') {
+        setManualTagInput('');
+      }
+    }
+
+    closeTagColorPicker();
+  }
 
   const createdTags = useMemo(() => {
     return [...tagsSummary].sort((left, right) => {
@@ -176,13 +260,13 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
   }, [tagsSummary]);
 
   const getTagColor = (tag: string): string => {
-    const colorKey = tagColorMap[tag];
-    if (!colorKey) return '#eef6ff';
+    const colorKey = getResolvedTagColorKey(tag);
+    if (!colorKey) return stringToColor(tag);
 
     const colorOption = TAG_COLOR_OPTIONS.find(
       option => option.key === colorKey,
     );
-    return colorOption ? colorOption.color : '#eef6ff';
+    return colorOption ? colorOption.color : stringToColor(tag);
   };
 
   const handleSuggestTags = async () => {
@@ -228,6 +312,35 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
       const saved = noteId
         ? await updateNote(noteId, payload)
         : await createNote(payload);
+
+      const colorOps = mergedTags
+        .map(tag => {
+          const normalized = normalizeTag(tag);
+          if (
+            !Object.prototype.hasOwnProperty.call(tagColorDrafts, normalized)
+          ) {
+            return null;
+          }
+
+          return {
+            tag,
+            colorKey: tagColorDrafts[normalized],
+          };
+        })
+        .filter(Boolean) as Array<{
+        tag: string;
+        colorKey: TagColorKey | null;
+      }>;
+
+      if (colorOps.length > 0) {
+        await Promise.all(
+          colorOps.map(entry =>
+            entry.colorKey
+              ? setTagColor(entry.tag, entry.colorKey)
+              : clearTagColor(entry.tag),
+          ),
+        );
+      }
 
       setSelectedTags(mergedTags);
       setManualTagInput('');
@@ -293,7 +406,7 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
               <Pressable
                 key={tag}
                 style={styles.suggestedChip}
-                onPress={() => addTag(tag)}
+                onPress={() => openTagColorPicker(tag, 'suggested')}
               >
                 <Text style={styles.suggestedChipText}>+ {tag}</Text>
               </Pressable>
@@ -348,15 +461,29 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
         </View>
 
         {selectedTags.length > 0 ? (
-          <View style={styles.chipsWrap}>
+          <View style={styles.selectedTagsList}>
             {selectedTags.map(tag => (
-              <Pressable
-                key={tag}
-                style={styles.selectedChip}
-                onPress={() => removeTag(tag)}
-              >
-                <Text style={styles.selectedChipText}>{tag} x</Text>
-              </Pressable>
+              <View key={tag} style={styles.selectedTagRow}>
+                <Pressable
+                  style={[
+                    styles.selectedChip,
+                    { backgroundColor: getResolvedTagColor(tag) },
+                  ]}
+                  onPress={() => removeTag(tag)}
+                >
+                  <Text style={styles.selectedChipText}>{tag} x</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.colorButton,
+                    { backgroundColor: getResolvedTagColor(tag) },
+                  ]}
+                  onPress={() => openTagColorPicker(tag, 'selected')}
+                >
+                  <Text style={styles.colorButtonText}>Color</Text>
+                </Pressable>
+              </View>
             ))}
           </View>
         ) : null}
@@ -386,6 +513,101 @@ export default function NoteEditorScreen({ route, navigation }: Props) {
         onConfirm={persistNote}
         onCancel={() => setIsSaveConfirmVisible(false)}
       />
+
+      <Modal
+        visible={tagColorPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeTagColorPicker}
+      >
+        <View style={styles.colorPickerOverlay}>
+          <View style={styles.colorPickerDialog}>
+            <Text style={styles.colorPickerTitle}>Tag color</Text>
+            <Text style={styles.colorPickerLabel}>
+              {tagColorTargetSource === 'selected' ? 'Update' : 'Add'} color for
+              "{tagColorTarget}"
+            </Text>
+
+            <View style={styles.colorPickerSwatches}>
+              {(() => {
+                const selected =
+                  getResolvedTagColorKey(tagColorTarget) === null;
+
+                return (
+                  <Pressable
+                    style={[
+                      styles.colorPickerSwatch,
+                      styles.defaultColorSwatch,
+                      selected && styles.colorPickerSwatchSelected,
+                    ]}
+                    onPress={() => {
+                      setTagColorDrafts(prev => ({
+                        ...prev,
+                        [normalizeTag(tagColorTarget)]: null,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.colorPickerSwatchText}>Default</Text>
+                  </Pressable>
+                );
+              })()}
+
+              {TAG_COLOR_OPTIONS.map(option => {
+                const selected =
+                  getResolvedTagColorKey(tagColorTarget) === option.key;
+
+                return (
+                  <Pressable
+                    key={option.key}
+                    style={[
+                      styles.colorPickerSwatch,
+                      { backgroundColor: option.color },
+                      selected && styles.colorPickerSwatchSelected,
+                    ]}
+                    onPress={() => {
+                      setTagColorDrafts(prev => ({
+                        ...prev,
+                        [normalizeTag(tagColorTarget)]: option.key,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.colorPickerSwatchText}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.colorPickerActions}>
+              <Pressable
+                style={[styles.actionButton, styles.cancelColorButton]}
+                onPress={closeTagColorPicker}
+              >
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    styles.cancelColorButtonText,
+                  ]}
+                >
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.actionButton, styles.saveColorButton]}
+                onPress={commitTagWithColor}
+              >
+                <Text
+                  style={[styles.actionButtonText, styles.saveColorButtonText]}
+                >
+                  {tagColorTargetSource === 'selected' ? 'Update' : 'Add Tag'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -399,6 +621,18 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  colorButton: {
+    borderRadius: 999,
+    marginLeft: 8,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  colorButtonText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
   },
   addTagButton: {
     backgroundColor: '#e2e8f0',
@@ -484,7 +718,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   selectedChip: {
-    backgroundColor: '#dbeafe',
     borderRadius: 999,
     marginRight: 8,
     marginTop: 8,
@@ -492,9 +725,17 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   selectedChipText: {
-    color: '#1d4ed8',
+    color: '#0f172a',
     fontSize: 13,
     fontWeight: '600',
+  },
+  selectedTagRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  selectedTagsList: {
+    marginTop: 8,
   },
   subtitle: {
     color: '#64748b',
@@ -519,6 +760,71 @@ const styles = StyleSheet.create({
     color: '#0e7490',
     fontSize: 13,
     fontWeight: '600',
+  },
+  colorPickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 14,
+  },
+  colorPickerDialog: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 18,
+    width: '92%',
+  },
+  colorPickerLabel: {
+    color: '#64748b',
+    marginTop: 4,
+  },
+  colorPickerOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  colorPickerSwatch: {
+    alignItems: 'center',
+    borderRadius: 12,
+    marginBottom: 8,
+    marginRight: 8,
+    minWidth: '30%',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  colorPickerSwatchSelected: {
+    borderColor: '#0f172a',
+    borderWidth: 2,
+  },
+  defaultColorSwatch: {
+    backgroundColor: '#f1f5f9',
+  },
+  colorPickerSwatchText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  colorPickerSwatches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  colorPickerTitle: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cancelColorButton: {
+    backgroundColor: '#e2e8f0',
+    marginRight: 10,
+  },
+  cancelColorButtonText: {
+    color: '#0f172a',
+  },
+  saveColorButton: {
+    backgroundColor: '#2563eb',
+  },
+  saveColorButtonText: {
+    color: '#ffffff',
   },
   title: {
     color: '#0f172a',

@@ -517,6 +517,20 @@ export async function setTagColor(
   }
 }
 
+export async function clearTagColor(tag: string): Promise<void> {
+  try {
+    await ensureInitialized();
+    const normalizedTag = String(tag).trim();
+    if (!normalizedTag) return;
+
+    await executeSql(`DELETE FROM ${TAG_COLORS_TABLE_NAME} WHERE tag = ?`, [
+      normalizedTag,
+    ]);
+  } catch (error) {
+    throw wrapDbError('clear tag color', error);
+  }
+}
+
 export async function renameTag(oldTag: string, newTag: string): Promise<void> {
   try {
     await ensureInitialized();
