@@ -14,7 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../navigation/HomeStackNavigator';
 import NoteCard from '../components/NoteCard';
 import ScreenContainer from '../components/ScreenContainer';
-import { getAllNotes } from '../database/database';
+import { getAllNotes, getTagsSummary, TagColorKey } from '../database/database';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'HomeMain'>;
 
@@ -50,6 +50,14 @@ export default function HomeScreen({ route, navigation }: Props) {
     'newest',
   );
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: TagColorKey | null;
+    }>
+  >([]);
   const parentNavigation = useNavigation();
 
   // Update selected tag when route params change
@@ -75,10 +83,20 @@ export default function HomeScreen({ route, navigation }: Props) {
     }
   }, []);
 
+  const loadTagsSummary = useCallback(async () => {
+    try {
+      const result = await getTagsSummary();
+      setTagsSummary(result);
+    } catch {
+      setTagsSummary([]);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadNotes();
-    }, [loadNotes]),
+      loadTagsSummary();
+    }, [loadNotes, loadTagsSummary]),
   );
 
   const tags = useMemo(() => {
@@ -104,6 +122,16 @@ export default function HomeScreen({ route, navigation }: Props) {
       return rightDate - leftDate; // newest first
     });
   }, [notes]);
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    tagsSummary.forEach(summary => {
+      if (summary.colorKey) {
+        map[summary.tag] = summary.colorKey;
+      }
+    });
+    return map;
+  }, [tagsSummary]);
 
   const filteredNotes = useMemo(() => {
     console.log(
@@ -246,6 +274,7 @@ export default function HomeScreen({ route, navigation }: Props) {
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
             isFavorite={item.is_favorite === 1}
+            tagColors={tagColorMap}
             onPress={() =>
               navigation.navigate('NoteDetail', { noteId: item.id })
             }

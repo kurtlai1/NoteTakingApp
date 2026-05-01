@@ -1,10 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NoteCard from '../components/NoteCard';
 import ScreenContainer from '../components/ScreenContainer';
-import { getFavoriteNotes } from '../database/database';
+import {
+  getFavoriteNotes,
+  getTagsSummary,
+  TagColorKey,
+} from '../database/database';
 
 type NoteRow = {
   id: number;
@@ -26,6 +30,14 @@ function parseTags(tags: string): string[] {
 export default function FavoritesScreen() {
   const navigation = useNavigation<any>();
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: TagColorKey | null;
+    }>
+  >([]);
 
   const loadFavorites = useCallback(async () => {
     try {
@@ -36,11 +48,31 @@ export default function FavoritesScreen() {
     }
   }, []);
 
+  const loadTagsSummary = useCallback(async () => {
+    try {
+      const result = await getTagsSummary();
+      setTagsSummary(result);
+    } catch {
+      setTagsSummary([]);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadFavorites();
-    }, [loadFavorites]),
+      loadTagsSummary();
+    }, [loadFavorites, loadTagsSummary]),
   );
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    tagsSummary.forEach(summary => {
+      if (summary.colorKey) {
+        map[summary.tag] = summary.colorKey;
+      }
+    });
+    return map;
+  }, [tagsSummary]);
 
   return (
     <ScreenContainer>
@@ -74,6 +106,7 @@ export default function FavoritesScreen() {
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
             isFavorite={item.is_favorite === 1}
+            tagColors={tagColorMap}
             onPress={() =>
               navigation.navigate('MainTabs', {
                 screen: 'Home',

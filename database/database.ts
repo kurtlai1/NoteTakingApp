@@ -2,6 +2,19 @@ import SQLite from 'react-native-sqlite-storage';
 
 const DB_NAME = 'notes.db';
 const TABLE_NAME = 'notes';
+const TAG_COLORS_TABLE_NAME = 'tag_colors';
+
+export const TAG_COLOR_OPTIONS = [
+  { key: 'red', label: 'Red', color: '#fca5a5' },
+  { key: 'orange', label: 'Orange', color: '#fdba74' },
+  { key: 'yellow', label: 'Yellow', color: '#fde68a' },
+  { key: 'green', label: 'Green', color: '#a7f3d0' },
+  { key: 'blue', label: 'Blue', color: '#93c5fd' },
+  { key: 'indigo', label: 'Indigo', color: '#c4b5fd' },
+  { key: 'pink', label: 'Pink', color: '#fbcfe8' },
+] as const;
+
+export type TagColorKey = (typeof TAG_COLOR_OPTIONS)[number]['key'];
 
 SQLite.enablePromise(true);
 
@@ -64,6 +77,10 @@ async function ensureInitialized(): Promise<void> {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function isTagColorKey(value: unknown): value is TagColorKey {
+  return TAG_COLOR_OPTIONS.some(option => option.key === value);
 }
 
 function normalizeTags(tags: unknown): string {
@@ -136,9 +153,20 @@ export async function initializeDatabase(): Promise<void> {
       );
     `,
     );
+
+    await executeSql(
+      `
+      CREATE TABLE IF NOT EXISTS ${TAG_COLORS_TABLE_NAME} (
+        tag TEXT PRIMARY KEY NOT NULL,
+        color_key TEXT NOT NULL
+      );
+    `,
+    );
     // Add migration for new columns
     try {
-      await executeSql(`ALTER TABLE ${TABLE_NAME} ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;`);
+      await executeSql(
+        `ALTER TABLE ${TABLE_NAME} ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;`,
+      );
     } catch {
       // Column already exists
     }
@@ -399,5 +427,166 @@ export async function getDrawerStats(): Promise<{
     };
   } catch (error) {
     throw wrapDbError('fetch drawer stats', error);
+  }
+}
+
+export async function getTagsSummary(): Promise<
+  Array<{
+    tag: string;
+    count: number;
+    latest: string;
+    colorKey: TagColorKey | null;
+  }>
+> {
+  try {
+    await ensureInitialized();
+
+    const result = await executeSql(
+      `SELECT id, tags, updated_at FROM ${TABLE_NAME} WHERE deleted_at IS NULL`,
+    );
+    const colorResult = await executeSql(
+      `SELECT tag, color_key FROM ${TAG_COLORS_TABLE_NAME}`,
+    );
+
+    const map = new Map<string, { count: number; latest: string }>();
+    const colorMap = new Map<string, TagColorKey>();
+
+    for (let i = 0; i < colorResult.rows.length; i += 1) {
+      const row = colorResult.rows.item(i);
+      const colorKey = row.color_key;
+      if (typeof row.tag === 'string' && isTagColorKey(colorKey)) {
+        colorMap.set(row.tag, colorKey);
+      }
+    }
+
+    for (let i = 0; i < result.rows.length; i += 1) {
+      const row = result.rows.item(i);
+      const tags = String(row.tags ?? '')
+        .split(',')
+        .map((t: string) => t.trim())
+        .filter(Boolean);
+
+      tags.forEach((tag: string) => {
+        const prev = map.get(tag);
+        const updatedAt = String(row.updated_at ?? '');
+        if (!prev) {
+          map.set(tag, { count: 1, latest: updatedAt });
+        } else {
+          prev.count += 1;
+          if (updatedAt > prev.latest) {
+            prev.latest = updatedAt;
+          }
+          map.set(tag, prev);
+        }
+      });
+    }
+
+    return Array.from(map.entries()).map(([tag, v]) => ({
+      tag,
+      count: v.count,
+      latest: v.latest,
+      colorKey: colorMap.get(tag) ?? null,
+    }));
+  } catch (error) {
+    throw wrapDbError('fetch tags summary', error);
+  }
+}
+
+export async function setTagColor(
+  tag: string,
+  colorKey: TagColorKey,
+): Promise<void> {
+  try {
+    await ensureInitialized();
+    const normalizedTag = String(tag).trim();
+    if (!normalizedTag) return;
+    if (!isTagColorKey(colorKey)) {
+      throw new Error('Invalid color selection.');
+    }
+
+    await executeSql(
+      `
+      INSERT INTO ${TAG_COLORS_TABLE_NAME} (tag, color_key)
+      VALUES (?, ?)
+      ON CONFLICT(tag) DO UPDATE SET color_key = excluded.color_key
+    `,
+      [normalizedTag, colorKey],
+    );
+  } catch (error) {
+    throw wrapDbError('set tag color', error);
+  }
+}
+
+export async function renameTag(oldTag: string, newTag: string): Promise<void> {
+  try {
+    await ensureInitialized();
+    const normalizedOld = String(oldTag).trim();
+    const normalizedNew = String(newTag).trim();
+    if (!normalizedOld) return;
+
+    const notes = await getAllNotes();
+
+    for (const note of notes) {
+      const tags = String(note.tags ?? '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      if (!tags.includes(normalizedOld)) continue;
+
+      const newTagsSet = new Set(tags.filter(t => t !== normalizedOld));
+      if (normalizedNew) newTagsSet.add(normalizedNew);
+
+      const newTags = Array.from(newTagsSet).join(',');
+
+      await executeSql(
+        `UPDATE ${TABLE_NAME} SET tags = ?, updated_at = ? WHERE id = ?`,
+        [newTags, nowIso(), note.id],
+      );
+    }
+
+    if (normalizedNew && normalizedNew !== normalizedOld) {
+      await executeSql(
+        `UPDATE ${TAG_COLORS_TABLE_NAME} SET tag = ? WHERE tag = ?`,
+        [normalizedNew, normalizedOld],
+      );
+    } else if (!normalizedNew || normalizedNew !== normalizedOld) {
+      await executeSql(`DELETE FROM ${TAG_COLORS_TABLE_NAME} WHERE tag = ?`, [
+        normalizedOld,
+      ]);
+    }
+  } catch (error) {
+    throw wrapDbError('rename tag', error);
+  }
+}
+
+export async function deleteTag(tagToDelete: string): Promise<void> {
+  try {
+    await ensureInitialized();
+    const normalized = String(tagToDelete).trim();
+    if (!normalized) return;
+
+    const notes = await getAllNotes();
+
+    for (const note of notes) {
+      const tags = String(note.tags ?? '')
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      if (!tags.includes(normalized)) continue;
+
+      const newTags = tags.filter(t => t !== normalized).join(',');
+      await executeSql(
+        `UPDATE ${TABLE_NAME} SET tags = ?, updated_at = ? WHERE id = ?`,
+        [newTags, nowIso(), note.id],
+      );
+    }
+
+    await executeSql(`DELETE FROM ${TAG_COLORS_TABLE_NAME} WHERE tag = ?`, [
+      normalized,
+    ]);
+  } catch (error) {
+    throw wrapDbError('delete tag', error);
   }
 }

@@ -1,10 +1,17 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NoteCard from '../components/NoteCard';
 import ScreenContainer from '../components/ScreenContainer';
-import { getAllNotes } from '../database/database';
+import { getAllNotes, getTagsSummary, TagColorKey } from '../database/database';
 
 type NoteRow = {
   id: number;
@@ -27,6 +34,14 @@ export default function SearchScreen() {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: TagColorKey | null;
+    }>
+  >([]);
 
   const loadNotes = useCallback(async () => {
     try {
@@ -37,11 +52,31 @@ export default function SearchScreen() {
     }
   }, []);
 
+  const loadTagsSummary = useCallback(async () => {
+    try {
+      const result = await getTagsSummary();
+      setTagsSummary(result);
+    } catch {
+      setTagsSummary([]);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadNotes();
-    }, [loadNotes]),
+      loadTagsSummary();
+    }, [loadNotes, loadTagsSummary]),
   );
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    tagsSummary.forEach(summary => {
+      if (summary.colorKey) {
+        map[summary.tag] = summary.colorKey;
+      }
+    });
+    return map;
+  }, [tagsSummary]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -57,7 +92,7 @@ export default function SearchScreen() {
         tags.some(tag => tag.toLowerCase().includes(q))
       );
     });
-  }, [query]);
+  }, [query, notes]);
 
   return (
     <ScreenContainer>
@@ -88,12 +123,22 @@ export default function SearchScreen() {
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
             isFavorite={item.is_favorite === 1}
-            onPress={() => navigation.navigate('Home', { screen: 'NoteDetail', params: { noteId: item.id } })}
+            tagColors={tagColorMap}
+            onPress={() =>
+              navigation.navigate('Home', {
+                screen: 'NoteDetail',
+                params: { noteId: item.id },
+              })
+            }
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="note-search-outline" size={32} color="#94a3b8" />
+            <MaterialCommunityIcons
+              name="note-search-outline"
+              size={32}
+              color="#94a3b8"
+            />
             <Text style={styles.emptyText}>No notes found.</Text>
           </View>
         }

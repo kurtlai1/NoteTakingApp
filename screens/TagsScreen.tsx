@@ -1,10 +1,27 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ScreenContainer from '../components/ScreenContainer';
 import NoteCard from '../components/NoteCard';
-import { getAllNotes } from '../database/database';
+import {
+  getAllNotes,
+  getTagsSummary,
+  TagColorKey,
+  setTagColor,
+  renameTag,
+  deleteTag,
+  TAG_COLOR_OPTIONS,
+} from '../database/database';
 
 type NoteRow = {
   id: number;
@@ -26,7 +43,18 @@ function parseTags(tags: string): string[] {
 export default function TagsScreen() {
   const navigation = useNavigation<any>();
   const [notes, setNotes] = useState<NoteRow[]>([]);
-  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [manageModalVisible, setManageModalVisible] = useState(false);
+  const [manageTargetTag, setManageTargetTag] = useState('');
+  const [manageInputValue, setManageInputValue] = useState('');
+  const [tagsSummary, setTagsSummary] = useState<
+    Array<{
+      tag: string;
+      count: number;
+      latest: string;
+      colorKey: TagColorKey | null;
+    }>
+  >([]);
 
   const loadNotes = useCallback(async () => {
     try {
@@ -37,72 +65,160 @@ export default function TagsScreen() {
     }
   }, []);
 
+  const loadTagsSummary = useCallback(async () => {
+    try {
+      const result = await getTagsSummary();
+      setTagsSummary(result);
+    } catch {
+      setTagsSummary([]);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadNotes();
-    }, [loadNotes]),
+      loadTagsSummary();
+    }, [loadNotes, loadTagsSummary]),
   );
 
   const tags = useMemo(() => {
-    const allTags = notes.flatMap(note => parseTags(note.tags));
-    const uniqueTags = Array.from(new Set(allTags));
-    
-    // Sort by most recent creation date (newest first)
-    return uniqueTags.sort((left, right) => {
-      const leftNotes = notes.filter(note => parseTags(note.tags).includes(left));
-      const rightNotes = notes.filter(note => parseTags(note.tags).includes(right));
-      
-      const leftDate = leftNotes.length > 0 
-        ? new Date(leftNotes[0].updated_at).getTime() 
-        : 0;
-      const rightDate = rightNotes.length > 0 
-        ? new Date(rightNotes[0].updated_at).getTime() 
-        : 0;
-      
-      return rightDate - leftDate; // newest first
+    if (tagsSummary.length > 0) return tagsSummary.map(t => t.tag);
+    const allTags = notes.flatMap(n => parseTags(n.tags));
+    return Array.from(new Set(allTags));
+  }, [notes, tagsSummary]);
+
+  const tagColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    tagsSummary.forEach(summary => {
+      if (summary.colorKey) {
+        map[summary.tag] = summary.colorKey;
+      }
     });
-  }, [notes]);
+    return map;
+  }, [tagsSummary]);
 
+  // OR behavior: show notes that contain any selected tag
   const filteredNotes = useMemo(() => {
-    if (!selectedTag) {
-      return notes;
-    }
+    if (selectedTags.length === 0) return notes;
+    return notes.filter(note =>
+      selectedTags.some(tag => parseTags(note.tags).includes(tag)),
+    );
+  }, [notes, selectedTags]);
 
-    return notes.filter(note => parseTags(note.tags).includes(selectedTag));
-  }, [notes, selectedTag]);
+  const toggleSelectTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag],
+    );
+  };
+
+  const openManageModal = (tag: string) => {
+    setManageTargetTag(tag);
+    setManageInputValue(tag);
+    setManageModalVisible(true);
+  };
+
+  const applyTagColor = async (colorKey: TagColorKey) => {
+    try {
+      await setTagColor(manageTargetTag, colorKey);
+      await loadTagsSummary();
+    } catch (err) {
+      Alert.alert('Error', (err as Error).message || 'Failed to set tag color');
+    }
+  };
+
+  const performRename = async () => {
+    try {
+      await renameTag(manageTargetTag, manageInputValue);
+      await loadNotes();
+      await loadTagsSummary();
+      setManageModalVisible(false);
+      setManageTargetTag('');
+      setManageInputValue('');
+    } catch (err) {
+      Alert.alert('Error', (err as Error).message || 'Failed to rename tag');
+    }
+  };
+
+  const confirmDeleteTag = () => {
+    Alert.alert(
+      'Delete tag',
+      `Delete "${manageTargetTag}" from all notes? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteTag(manageTargetTag);
+              await loadNotes();
+              await loadTagsSummary();
+              setManageModalVisible(false);
+              setManageTargetTag('');
+              setManageInputValue('');
+            } catch (err) {
+              Alert.alert(
+                'Error',
+                (err as Error).message || 'Failed to delete tag',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <ScreenContainer>
-      <View style={styles.headerRow}>
-        <MaterialCommunityIcons
-          name="tag-multiple-outline"
-          size={26}
-          color="#0f766e"
-        />
-        <Text style={styles.title}>Tags</Text>
+      <View style={styles.headerTopRow}>
+        <View style={styles.headerRow}>
+          <MaterialCommunityIcons
+            name="tag-multiple-outline"
+            size={26}
+            color="#0f766e"
+          />
+          <Text style={styles.title}>Tags</Text>
+        </View>
       </View>
+
       <Text style={styles.subtitle}>Browse notes by tag categories.</Text>
 
       <View style={styles.tagsWrap}>
-        {tags.map(tag => (
-          <Pressable
-            key={tag}
-            style={[
-              styles.tagChip,
-              selectedTag === tag && styles.tagChipSelected,
-            ]}
-            onPress={() => setSelectedTag(prev => (prev === tag ? '' : tag))}
-          >
-            <Text
+        {tags.map(tag => {
+          const summary = tagsSummary.find(t => t.tag === tag);
+          const count = summary
+            ? summary.count
+            : notes.filter(n => parseTags(n.tags).includes(tag)).length;
+          const selected = selectedTags.includes(tag);
+          const colorKey = summary?.colorKey;
+          const chipColor = selected
+            ? getSelectedTagColor(tag)
+            : colorKey
+            ? getColorByKey(colorKey)
+            : stringToColor(tag);
+
+          return (
+            <Pressable
+              key={tag}
               style={[
-                styles.tagText,
-                selectedTag === tag && styles.tagTextSelected,
+                styles.tagChip,
+                selected && styles.tagChipSelected,
+                { backgroundColor: chipColor },
               ]}
+              onPress={() => toggleSelectTag(tag)}
+              onLongPress={() => openManageModal(tag)}
             >
-              {tag}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[styles.tagText, selected && styles.tagTextSelected]}
+              >
+                {tag}
+              </Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{count}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       <FlatList
@@ -127,6 +243,7 @@ export default function TagsScreen() {
             tags={parseTags(item.tags)}
             updated_at={item.updated_at}
             isFavorite={item.is_favorite === 1}
+            tagColors={tagColorMap}
             onPress={() =>
               navigation.navigate('Home', {
                 screen: 'NoteDetail',
@@ -136,8 +253,101 @@ export default function TagsScreen() {
           />
         )}
       />
+
+      <Modal
+        visible={manageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setManageModalVisible(false)}
+      >
+        <View style={styles.manageOverlay}>
+          <View style={styles.manageDialog}>
+            <Text style={styles.manageTitle}>Manage tag</Text>
+            <Text style={styles.manageLabel}>Tag: {manageTargetTag}</Text>
+
+            <TextInput
+              style={styles.manageInput}
+              value={manageInputValue}
+              onChangeText={setManageInputValue}
+              placeholder="Enter new tag name"
+            />
+
+            <Text style={styles.colorSectionLabel}>Color</Text>
+            <View style={styles.colorSwatches}>
+              {TAG_COLOR_OPTIONS.map(option => {
+                const summary = tagsSummary.find(
+                  t => t.tag === manageTargetTag,
+                );
+                const selectedColor = summary?.colorKey === option.key;
+
+                return (
+                  <Pressable
+                    key={option.key}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: option.color },
+                      selectedColor && styles.colorSwatchSelected,
+                    ]}
+                    onPress={() => applyTagColor(option.key)}
+                  >
+                    <Text style={styles.colorSwatchLabel}>{option.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.manageActions}>
+              <Pressable
+                style={[styles.manageButton, styles.cancelButton]}
+                onPress={() => setManageModalVisible(false)}
+              >
+                <Text style={styles.manageButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.manageButton, styles.renameButton]}
+                onPress={() => performRename()}
+              >
+                <Text style={styles.manageButtonText}>Rename</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.manageButton, styles.deleteButton]}
+                onPress={() => confirmDeleteTag()}
+              >
+                <Text style={styles.manageButtonText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
+}
+
+function stringToColor(input: string) {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = input.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 90%)`;
+}
+
+function getSelectedTagColor(input: string) {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = input.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 74%, 34%)`;
+}
+
+function getColorByKey(colorKey: string) {
+  const option = TAG_COLOR_OPTIONS.find(item => item.key === colorKey);
+  return option ? option.color : stringToColor(colorKey);
 }
 
 const styles = StyleSheet.create({
@@ -157,6 +367,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 4,
   },
+  title: {
+    color: '#0f172a',
+    fontSize: 24,
+    fontWeight: '700',
+  },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -169,26 +384,138 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tagChipSelected: {
-    backgroundColor: '#1d4ed8',
+    borderColor: 'rgba(255,255,255,0.35)',
+    borderWidth: 1,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
+    marginBottom: 4,
   },
   tagText: {
-    color: '#1d4ed8',
+    color: '#0f172a',
     fontSize: 13,
     fontWeight: '600',
   },
   tagTextSelected: {
     color: '#ffffff',
   },
-  title: {
+  countBadge: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  countBadgeText: {
+    fontSize: 12,
     color: '#0f172a',
-    fontSize: 24,
     fontWeight: '700',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  matchModeRow: {
+    marginLeft: 8,
+  },
+  matchModeText: {
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  manageOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  manageDialog: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    minWidth: 320,
+  },
+  manageTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  manageLabel: {
+    color: '#0f172a',
+    marginTop: 8,
+  },
+  manageInput: {
+    borderColor: '#cbd5e1',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+    color: '#0f172a',
+  },
+  colorSectionLabel: {
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  colorSwatches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  colorSwatch: {
+    borderRadius: 999,
+    minWidth: 86,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorSwatchSelected: {
+    borderColor: '#0f172a',
+  },
+  colorSwatchLabel: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  manageActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+  },
+  manageButton: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  manageButtonText: {
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  cancelButton: {
+    backgroundColor: '#e2e8f0',
+  },
+  renameButton: {
+    backgroundColor: '#0f766e',
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
   },
 });
