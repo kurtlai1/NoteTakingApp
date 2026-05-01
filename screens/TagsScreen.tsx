@@ -196,7 +196,7 @@ export default function TagsScreen() {
       </View>
 
       <Text style={styles.subtitle}>Browse notes by tag categories.</Text>
-      <Text style={styles.subtitle}>Long press a tag to manage it.</Text>
+      <Text style={styles.smallerSubtitle}>Long press a tag to manage it.</Text>
 
       <View style={styles.tagsWrap}>
         {tags.map(tag => {
@@ -337,7 +337,7 @@ export default function TagsScreen() {
                 style={[styles.manageButton, styles.renameButton]}
                 onPress={() => performRename()}
               >
-                <Text style={styles.manageButtonText}>Rename</Text>
+                <Text style={styles.manageButtonText}>Update</Text>
               </Pressable>
 
               <Pressable
@@ -389,6 +389,11 @@ const styles = StyleSheet.create({
   subtitle: {
     color: '#64748b',
     marginTop: 4,
+  },
+  smallerSubtitle: {
+    color: '#64748b',
+    marginTop: 4,
+    fontSize: 12,
   },
   title: {
     color: '#0f172a',
@@ -526,7 +531,7 @@ const styles = StyleSheet.create({
   manageActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 12,
+    marginTop: 40,
   },
   manageButton: {
     marginLeft: 8,
@@ -542,9 +547,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
   },
   renameButton: {
-    backgroundColor: '#0fee40',
+    backgroundColor: '#70e78a',
   },
   deleteButton: {
-    backgroundColor: '#ff4a4a',
+    backgroundColor: '#ff6b6b',
   },
 });

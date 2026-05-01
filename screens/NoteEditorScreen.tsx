@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 10,
+    marginTop: 4,
   },
   saveButton: {
     backgroundColor: '#2563eb',
@@ -817,13 +817,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    flex: 1,
   },
   selectedTagItem: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 1,
   },
   selectedTagsList: {
     gap: 8,

@@ -46,6 +46,8 @@ const SORT_OPTIONS = [
   { key: 'title', label: 'Title' },
 ];
 
+const ICON_COLOR = '#334155'; // Change this to update all icon colors
+
 export default function HomeScreen({ route, navigation }: Props) {
   const [notes, setNotes] = useState<HomeNote[]>([]);
   const [selectedTag, setSelectedTag] = useState(
@@ -195,7 +197,7 @@ export default function HomeScreen({ route, navigation }: Props) {
               <MaterialCommunityIcons
                 name="magnify"
                 size={24}
-                color="#334155"
+                color={ICON_COLOR}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -337,13 +339,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   menuButton: {
-    padding: 8,
+    marginTop: -10,
+    padding: 0,
   },
   titleContainer: {
+    paddingLeft: 20,
     flex: 1,
     alignItems: 'center',
   },
   headerIconsRow: {
+    marginTop: -10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -357,7 +362,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerIcon: {
-    fontSize: 24,
+    marginTop: -7,
+    fontSize: 28,
+    color: '#334155',
+  },
+  searchIconColor: {
+    color: '#334155',
   },
   emptyText: {
     color: '#64748b',
@@ -395,6 +405,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
+    marginTop: 4,
     fontSize: 28,
     fontWeight: '800',
     color: '#000000',
