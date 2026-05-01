@@ -56,7 +56,12 @@ export default function HomeScreen({ route, navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       const tag = route.params?.selectedTag || '';
-      console.log('HomeScreen focus - route.params:', route.params, 'tag:', tag);
+      console.log(
+        'HomeScreen focus - route.params:',
+        route.params,
+        'tag:',
+        tag,
+      );
       setSelectedTag(tag);
     }, [route.params?.selectedTag]),
   );
@@ -79,25 +84,34 @@ export default function HomeScreen({ route, navigation }: Props) {
   const tags = useMemo(() => {
     const allTags = notes.flatMap(note => parseTags(note.tags));
     const uniqueTags = Array.from(new Set(allTags));
-    
+
     // Sort by most recent creation date (newest first)
     return uniqueTags.sort((left, right) => {
-      const leftNotes = notes.filter(note => parseTags(note.tags).includes(left));
-      const rightNotes = notes.filter(note => parseTags(note.tags).includes(right));
-      
-      const leftDate = leftNotes.length > 0 
-        ? new Date(leftNotes[0].updated_at).getTime() 
-        : 0;
-      const rightDate = rightNotes.length > 0 
-        ? new Date(rightNotes[0].updated_at).getTime() 
-        : 0;
-      
+      const leftNotes = notes.filter(note =>
+        parseTags(note.tags).includes(left),
+      );
+      const rightNotes = notes.filter(note =>
+        parseTags(note.tags).includes(right),
+      );
+
+      const leftDate =
+        leftNotes.length > 0 ? new Date(leftNotes[0].updated_at).getTime() : 0;
+      const rightDate =
+        rightNotes.length > 0
+          ? new Date(rightNotes[0].updated_at).getTime()
+          : 0;
+
       return rightDate - leftDate; // newest first
     });
   }, [notes]);
 
   const filteredNotes = useMemo(() => {
-    console.log('Computing filteredNotes - selectedTag:', selectedTag, 'total notes:', notes.length);
+    console.log(
+      'Computing filteredNotes - selectedTag:',
+      selectedTag,
+      'total notes:',
+      notes.length,
+    );
     const filtered = selectedTag
       ? notes.filter(note => parseTags(note.tags).includes(selectedTag))
       : notes;
@@ -138,7 +152,11 @@ export default function HomeScreen({ route, navigation }: Props) {
               onPress={() => (parentNavigation as any).navigate('Search')}
               style={styles.iconButton}
             >
-              <MaterialCommunityIcons name="magnify" size={24} color="#334155" />
+              <MaterialCommunityIcons
+                name="magnify"
+                size={24}
+                color="#334155"
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowSortMenu(!showSortMenu)}
@@ -168,7 +186,8 @@ export default function HomeScreen({ route, navigation }: Props) {
                   <Text
                     style={[
                       styles.sortOverflowText,
-                      sortOption === option.key && styles.sortOverflowTextActive,
+                      sortOption === option.key &&
+                        styles.sortOverflowTextActive,
                     ]}
                   >
                     {option.label}
@@ -195,7 +214,9 @@ export default function HomeScreen({ route, navigation }: Props) {
                   styles.tagPill,
                   selectedTag === tag && styles.tagPillActive,
                 ]}
-                onPress={() => setSelectedTag(prev => (prev === tag ? '' : tag))}
+                onPress={() =>
+                  setSelectedTag(prev => (prev === tag ? '' : tag))
+                }
               >
                 <Text style={styles.tagText}>{tag}</Text>
               </TouchableOpacity>
@@ -254,6 +275,7 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     marginBottom: 0,
+    marginTop: -12,
   },
   headerContent: {
     paddingHorizontal: 0,

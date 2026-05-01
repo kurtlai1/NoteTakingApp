@@ -74,7 +74,7 @@ export default function NoteDetailScreen({ route, navigation }: Props) {
 
 		await deleteNote(noteId);
 		setIsDeleteDialogVisible(false);
-		navigation.navigate('HomeMain');
+		navigation.navigate({ name: 'HomeMain', params: {} });
 	};
 
 	const handleToggleFavorite = async () => {

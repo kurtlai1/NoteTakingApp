@@ -23,7 +23,7 @@ export default function HomeStackNavigator() {
         name="HomeMain"
         component={HomeScreen}
         options={{
-          title: 'Sparky Note Application',
+          title: 'MyNotes',
         }}
       />
       <Stack.Screen
