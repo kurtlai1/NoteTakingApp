@@ -182,14 +182,16 @@ export default function TagsScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.headerTopRow}>
-        <View style={styles.headerRow}>
-          <MaterialCommunityIcons
-            name="tag-multiple-outline"
-            size={26}
-            color="#0f766e"
-          />
-          <Text style={styles.title}>Tags</Text>
+      <View style={styles.headerSection}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerRow}>
+            <MaterialCommunityIcons
+              name="tag-multiple-outline"
+              size={26}
+              color="#0f766e"
+            />
+            <Text style={styles.title}>Tags</Text>
+          </View>
         </View>
       </View>
 
@@ -447,6 +449,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerSection: {
+    paddingTop: 12,
   },
   matchModeRow: {
     marginLeft: 8,
