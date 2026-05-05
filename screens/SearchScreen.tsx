@@ -137,9 +137,12 @@ export default function SearchScreen() {
             isFavorite={item.is_favorite === 1}
             tagColors={tagColorMap}
             onPress={() =>
-              navigation.navigate('Home', {
-                screen: 'NoteDetail',
-                params: { noteId: item.id },
+              navigation.navigate('MainTabs', {
+                screen: 'Home',
+                params: {
+                  screen: 'NoteDetail',
+                  params: { noteId: item.id },
+                },
               })
             }
           />

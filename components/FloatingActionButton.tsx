@@ -20,6 +20,7 @@ export default function FloatingActionButton() {
         screen: 'Home',
         params: {
           screen: 'NoteEditor',
+          params: {},
         },
       });
     } catch (e) {

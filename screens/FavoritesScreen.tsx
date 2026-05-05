@@ -116,7 +116,10 @@ export default function FavoritesScreen() {
             onPress={() =>
               navigation.navigate('MainTabs', {
                 screen: 'Home',
-                params: { screen: 'NoteDetail', params: { noteId: item.id } },
+                params: {
+                  screen: 'NoteDetail',
+                  params: { noteId: item.id },
+                },
               })
             }
           />
